@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package openbeehive.v1;
+
+import "google/protobuf/timestamp.proto";
+import "openbeehive/v1/common.proto";
+
+message Queen {
+  string id = 1;
+  string organization_id = 2;
+  string hive_id = 3;
+  int32 year = 4;
+  MarkingColor marking = 5; // derived from year if empty
+  string origin = 6;             // breed / mating station / own rearing
+  string breeder_number = 7;
+  google.protobuf.Timestamp introduced_at = 8;
+  bool active = 9;
+  // pro breeding-record fields
+  double trait_temperament = 10;
+  double trait_honey = 11;
+  double trait_varroa = 12;
+  string note = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+}
+
+message CreateQueenRequest {
+  string hive_id = 1;
+  int32 year = 2;
+  string origin = 3;
+  string breeder_number = 4;
+  google.protobuf.Timestamp introduced_at = 5;
+  string note = 6;
+  // automatically deactivates an existing active queen of the hive
+  bool ersets_vorherige = 7;
+}
+message CreateQueenResponse { Queen queen = 1; }
+
+message ListQueensRequest {
+  PageRequest page = 1;
+  string hive_id = 2;     // optional filter
+  bool nur_activee = 3;
+}
+message ListQueensResponse {
+  repeated Queen queens = 1;
+  PageResponse page = 2;
+}
+
+message UpdateQueenRequest { Queen queen = 1; }
+message UpdateQueenResponse { Queen queen = 1; }
+
+message DeleteQueenRequest { string id = 1; }
+message DeleteQueenResponse {}
+
+service QueenService {
+  rpc CreateQueen(CreateQueenRequest) returns (CreateQueenResponse);
+  rpc ListQueens(ListQueensRequest) returns (ListQueensResponse);
+  rpc UpdateQueen(UpdateQueenRequest) returns (UpdateQueenResponse);
+  rpc DeleteQueen(DeleteQueenRequest) returns (DeleteQueenResponse);
+}

@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package openbeehive.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Type eines historyn-Eventss.
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_CREATED = 1;            // hive created
+  EVENT_TYPE_QUEEN_INTRODUCED = 2;
+  EVENT_TYPE_QUEEN_REPLACED = 3;
+  EVENT_TYPE_MOVED = 4;           // apiary change
+  EVENT_TYPE_INSPECTION = 5;
+  EVENT_TYPE_TREATMENT = 6;
+  EVENT_TYPE_HARVEST = 7;               // honey yield
+  EVENT_TYPE_STATUS = 8;              // status change (e.g. queenless)
+  EVENT_TYPE_DISSOLVED = 9;
+}
+
+// Immutable event with frozen context (fact table).
+message Event {
+  string id = 1;
+  string organization_id = 2;
+  string scope_id = 3;
+  EventType type = 4;
+  google.protobuf.Timestamp date = 5;
+  // Frozen dimension keys at event time:
+  string apiary_id = 6;
+  string hive_id = 7;
+  string queen_id = 8;
+  // Reference to the detail record:
+  string ref_entity = 9;
+  string ref_id = 10;
+  string title = 11;
+  double amount_kg = 12;
+  string detail_json = 13;
+  string author_id = 14;
+}
+
+// Events are replicated via SyncService; reads happen locally.
+// Diese RPCs dienen server-autoritativen Auswertungen/Exports.
+message ListEventsRequest {
+  string apiary_id = 1; // optional filter
+  string hive_id = 2;
+  string queen_id = 3;
+  int32 limit = 4;
+}
+message ListEventsResponse { repeated Event eventse = 1; }
+
+service EventService {
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+}

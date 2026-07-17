@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package openbeehive.v1;
+
+import "google/protobuf/timestamp.proto";
+import "openbeehive/v1/common.proto";
+import "openbeehive/v1/inspection.proto"; // Treatment message
+
+// Server-authoritative CRUD for treatments (the Bestandsbuch). The app itself
+// writes treatments through the local-first store and sync; these endpoints are
+// for export, admin and integrations.
+
+message CreateTreatmentRequest {
+  string hive_id = 1;
+  google.protobuf.Timestamp date = 2;
+  string product = 3;
+  string active_ingredient = 4;
+  string dose = 5;
+  string method = 6;
+  string batch_number = 7;
+  google.protobuf.Timestamp withdrawal_until = 8;
+  string reason = 9;
+  string note = 10;
+}
+message CreateTreatmentResponse { Treatment treatment = 1; }
+
+message ListTreatmentsRequest {
+  PageRequest page = 1;
+  string hive_id = 2;
+}
+message ListTreatmentsResponse {
+  repeated Treatment treatments = 1;
+  PageResponse page = 2;
+}
+
+message DeleteTreatmentRequest { string id = 1; }
+message DeleteTreatmentResponse {}
+
+service TreatmentService {
+  rpc CreateTreatment(CreateTreatmentRequest) returns (CreateTreatmentResponse);
+  rpc ListTreatments(ListTreatmentsRequest) returns (ListTreatmentsResponse);
+  rpc DeleteTreatment(DeleteTreatmentRequest) returns (DeleteTreatmentResponse);
+}

@@ -1,0 +1,24 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    # Derives go_package for every file as <prefix>/<proto-dir>, e.g.
+    # openbeehive/v1 -> github.com/johnnycube/openbeehive-app/server/internal/gen/openbeehive/v1
+    - file_option: go_package_prefix
+      value: github.com/johnnycube/openbeehive-app/server/internal/gen
+plugins:
+  # --- Go (Backend) ---
+  - remote: buf.build/protocolbuffers/go
+    out: server/internal/gen
+    opt: paths=source_relative
+  - remote: buf.build/connectrpc/go
+    out: server/internal/gen
+    opt: paths=source_relative
+
+  # --- TypeScript (SvelteKit app) ---
+  # protoc-gen-es v2 generates messages AND service descriptors (used by
+  # @connectrpc/connect v2's createClient); the separate connect-es plugin is
+  # gone. Keep the pin in step with app/package.json (@bufbuild/protobuf@^2).
+  - remote: buf.build/bufbuild/es:v2.12.1
+    out: app/src/lib/proto
+    opt: target=ts

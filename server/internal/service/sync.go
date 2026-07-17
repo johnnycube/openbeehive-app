@@ -1,0 +1,415 @@
+package service
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	"connectrpc.com/connect"
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
+
+	"github.com/johnnycube/openbeehive-app/server/internal/auth"
+	wv1 "github.com/johnnycube/openbeehive-app/server/internal/gen/openbeehive/v1"
+	wsync "github.com/johnnycube/openbeehive-app/server/internal/sync"
+)
+
+// Column whitelist per entity. cols are merged via per-field LWW,
+// setCols as OR-Set (add-wins). Both stay portable (no UPSERT needed).
+type entitySpec struct {
+	table   string
+	cols    []string
+	setCols []string
+}
+
+var entityCols = map[string]entitySpec{
+	"apiary":       {"apiary", []string{"id", "organization_id", "name", "address", "lat", "lng", "note", "created_at", "updated_at", "deleted"}, nil},
+	"hive":          {"hive", []string{"id", "organization_id", "apiary_id", "name", "type", "status", "boxes", "colony_origin", "note", "qr_code", "photo", "created_at", "updated_at", "deleted"}, nil},
+	"queen":       {"queen", []string{"id", "organization_id", "hive_id", "year", "marking", "origin", "breeder_number", "introduced_at", "replaced_at", "active", "note", "created_at", "updated_at", "deleted"}, nil},
+	"inspection":     {"inspection", []string{"id", "organization_id", "hive_id", "date", "weather", "queen_seen", "eggs_seen", "temperament", "frames", "stores", "queen_cells", "varroa", "honey_kg", "note", "brood_frames", "calmness", "fed_kg", "frames_added", "frames_removed", "drone_frame_cut", "super_added", "weight_kg", "youngest_larva", "covered_larva", "temp_hive", "temp_outside", "humidity_hive", "humidity_outside", "created_at", "deleted"}, []string{"photo_keys"}},
+	"task":        {"task", []string{"id", "organization_id", "title", "hive_id", "apiary_id", "due_at", "done", "priority", "note", "recurrence", "assigned_to", "created_at", "deleted"}, nil},
+	"placement": {"placement", []string{"id", "organization_id", "hive_id", "apiary_id", "start_at", "end_at", "deleted"}, nil},
+	"harvest":          {"harvest", []string{"id", "organization_id", "apiary_id", "hive_id", "queen_id", "date", "variety", "amount_kg", "water_content", "batch_number", "best_before", "note", "deleted"}, nil},
+	"treatment":       {"treatment", []string{"id", "organization_id", "apiary_id", "hive_id", "queen_id", "date", "product", "active_ingredient", "dose", "method", "batch_number", "withdrawal_until", "reason", "note", "deleted"}, nil},
+	"event":       {"event", []string{"id", "organization_id", "scope_id", "type", "date", "apiary_id", "hive_id", "queen_id", "ref_entity", "ref_id", "title", "amount_kg", "detail", "author_id", "deleted"}, nil},
+}
+
+func isSetCol(spec entitySpec, col string) bool {
+	for _, c := range spec.setCols {
+		if c == col {
+			return true
+		}
+	}
+	return false
+}
+
+func inCols(spec entitySpec, col string) bool {
+	for _, c := range spec.cols {
+		if c == col {
+			return true
+		}
+	}
+	return false
+}
+
+// --- small conversion helpers for MapScan / JSON ---
+
+func asString(v any) string {
+	switch t := v.(type) {
+	case string:
+		return t
+	case []byte:
+		return string(t)
+	default:
+		return ""
+	}
+}
+
+func toStrings(v any) []string {
+	arr, ok := v.([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(arr))
+	for _, e := range arr {
+		if s, ok := e.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+type SyncService struct {
+	db   *sqlx.DB
+	hlc  *wsync.HLC
+}
+
+func NewSyncService(db *sqlx.DB, hlc *wsync.HLC) *SyncService { return &SyncService{db: db, hlc: hlc} }
+
+// --- Pull: returns changes within the scopes visible to the user ---
+
+func (s *SyncService) Pull(
+	ctx context.Context, req *connect.Request[wv1.PullRequest],
+) (*connect.Response[wv1.PullResponse], error) {
+	id, ok := auth.FromContext(ctx)
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+	}
+	scopes, err := s.accessibleScopes(ctx, id.UserID, id.OrgID)
+	if err != nil || len(scopes) == 0 {
+		return connect.NewResponse(&wv1.PullResponse{NextCursor: req.Msg.Cursor}), err
+	}
+	limit := int(req.Msg.Limit)
+	if limit <= 0 || limit > 500 {
+		limit = 200
+	}
+	q, args, _ := sqlx.In(`
+		SELECT scope_id, entity, entity_id, op, payload, hlc, author_id, seq
+		FROM change_log
+		WHERE scope_id IN (?) AND seq > ?
+		ORDER BY seq ASC LIMIT ?`, scopes, cursorToSeq(req.Msg.Cursor), limit+1)
+	rows, err := s.db.QueryxContext(ctx, s.db.Rebind(q), args...)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	defer rows.Close()
+
+	var out []*wv1.Change
+	var seqs []int64
+	for rows.Next() {
+		var c struct {
+			ScopeID, Entity, EntityID, Payload, HLC, Author string
+			Op                                              int32
+			Seq                                             int64
+		}
+		if err := rows.Scan(&c.ScopeID, &c.Entity, &c.EntityID, &c.Op, &c.Payload, &c.HLC, &c.Author, &c.Seq); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		out = append(out, &wv1.Change{
+			Entity: c.Entity, EntityId: c.EntityID, ScopeId: c.ScopeID,
+			Op: wv1.ChangeOp(c.Op), PayloadJson: c.Payload, Hlc: c.HLC, AuthorId: c.Author,
+		})
+		seqs = append(seqs, c.Seq)
+	}
+
+	// limit+1 abgefragt -> detects, ob more pages follow.
+	hasMore := len(out) > limit
+	if hasMore {
+		out, seqs = out[:limit], seqs[:limit]
+	}
+	next := req.Msg.Cursor
+	if len(seqs) > 0 {
+		next = seqToCursor(seqs[len(seqs)-1])
+	}
+	return connect.NewResponse(&wv1.PullResponse{
+		Changes: out, NextCursor: next, HasMore: hasMore,
+	}), nil
+}
+
+// --- Push: applies incoming changes via LWW ---
+
+func (s *SyncService) Push(
+	ctx context.Context, req *connect.Request[wv1.PushRequest],
+) (*connect.Response[wv1.PushResponse], error) {
+	id, ok := auth.FromContext(ctx)
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+	}
+	// Writable scopes for this user: same set Pull reads from. Changes outside
+	// it are rejected — otherwise any authenticated user could inject rows into
+	// a foreign tenant's change feed by picking its scope id.
+	scopes, err := s.accessibleScopes(ctx, id.UserID, id.OrgID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	scopeSet := make(map[string]bool, len(scopes))
+	for _, sc := range scopes {
+		scopeSet[sc] = true
+	}
+
+	tx, err := s.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	defer tx.Rollback()
+
+	var conflicts []*wv1.Conflict
+	for _, ch := range req.Msg.Changes {
+		s.hlc.Recv(ch.Hlc) // sync clock with origin time
+
+		spec, ok := entityCols[ch.Entity]
+		if !ok {
+			continue
+		}
+		if !scopeSet[ch.ScopeId] {
+			// A new apiary opens its own scope (scope id = apiary id); its
+			// tenant is still enforced against the row in applyChange.
+			if ch.Entity == "apiary" && ch.ScopeId == ch.EntityId {
+				scopeSet[ch.ScopeId] = true
+			} else {
+				return nil, connect.NewError(connect.CodePermissionDenied,
+					fmt.Errorf("scope %q is not writable for this user", ch.ScopeId))
+			}
+		}
+		// Per-field-LWW + OR-Set-Merge. No row-level stale gate anymore:
+		// stale individual fields are dropped in applyChange, newer
+		// fields from other devices are preserved.
+		if err := applyChange(ctx, tx, spec, ch, id.OrgID); err != nil {
+			if errors.Is(err, errWrongTenant) {
+				return nil, connect.NewError(connect.CodePermissionDenied, err)
+			}
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		if err := appendChangeLog(ctx, tx, ch, id.OrgID); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+	_ = conflicts
+	var cursor int64
+	_ = tx.GetContext(ctx, &cursor, "SELECT val FROM seq_counter WHERE name = 'change'")
+	if err := tx.Commit(); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&wv1.PushResponse{
+		ServerCursor: seqToCursor(cursor), Conflicts: conflicts,
+	}), nil
+}
+
+// --- Subscribe: optional live channel. Polls the global change cursor and
+// nudges the device whenever it advances, so it can pull immediately. ---
+
+func (s *SyncService) Subscribe(
+	ctx context.Context, req *connect.Request[wv1.SubscribeRequest],
+	stream *connect.ServerStream[wv1.SubscribeEvent],
+) error {
+	if _, ok := auth.FromContext(ctx); !ok {
+		return connect.NewError(connect.CodeUnauthenticated, nil)
+	}
+	last := cursorToSeq(req.Msg.Cursor)
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			var cur int64
+			if err := s.db.GetContext(ctx, &cur,
+				"SELECT val FROM seq_counter WHERE name = 'change'"); err != nil {
+				return connect.NewError(connect.CodeInternal, err)
+			}
+			if cur > last {
+				last = cur
+				if err := stream.Send(&wv1.SubscribeEvent{ServerCursor: seqToCursor(cur)}); err != nil {
+					return err
+				}
+			}
+		}
+	}
+}
+
+// errWrongTenant rejects changes that address rows of another tenant.
+var errWrongTenant = errors.New("change targets another tenant's data")
+
+// applyChange merges an incoming change field-by-field into the row:
+// Skalare per LWW (field-clock), Set-fielder per OR-Set-union.
+// orgID is the caller's active tenant: existing rows must belong to it, new
+// rows are stamped with it — a client cannot write into a foreign tenant, and
+// cannot move a row across tenants, no matter what its payload claims.
+func applyChange(ctx context.Context, tx *sqlx.Tx, spec entitySpec, ch *wv1.Change, orgID string) error {
+	fields := map[string]any{}
+	if ch.Op == wv1.ChangeOp_CHANGE_OP_DELETE {
+		fields["deleted"] = true
+	} else if err := json.Unmarshal([]byte(ch.PayloadJson), &fields); err != nil {
+		return err
+	}
+	if v, ok := fields["organization_id"]; ok {
+		if s := asString(v); s == "" {
+			fields["organization_id"] = orgID // unset -> stamp the caller's tenant
+		} else if s != orgID {
+			return errWrongTenant
+		}
+	}
+
+	// Load the current row state (for field clock and set columns).
+	row := map[string]any{}
+	rows, err := tx.QueryxContext(ctx, tx.Rebind(
+		fmt.Sprintf("SELECT * FROM %s WHERE id = ?", spec.table)), ch.EntityId)
+	if err != nil {
+		return err
+	}
+	exists := rows.Next()
+	if exists {
+		_ = rows.MapScan(row)
+	}
+	rows.Close()
+
+	if exists {
+		if rowOrg := asString(row["organization_id"]); rowOrg != "" && rowOrg != orgID {
+			return errWrongTenant
+		}
+		return updateMerge(ctx, tx, spec, ch, fields, row)
+	}
+	fields["organization_id"] = orgID // new rows always belong to the caller's tenant
+	return insertNew(ctx, tx, spec, ch, fields)
+}
+
+// insertNew: new row. All provided fields are stamped with ch.Hlc.
+func insertNew(ctx context.Context, tx *sqlx.Tx, spec entitySpec, ch *wv1.Change, fields map[string]any) error {
+	fc := wsync.FieldClock{}
+	cols := []string{"id"}
+	args := []any{ch.EntityId}
+
+	for _, c := range spec.cols {
+		if c == "id" {
+			continue
+		}
+		if v, ok := fields[c]; ok {
+			cols = append(cols, c)
+			args = append(args, v)
+			fc[c] = ch.Hlc
+		}
+	}
+	for _, sc := range spec.setCols {
+		os := wsync.ORSet{}
+		if d, ok := fields[sc].(map[string]any); ok {
+			for _, e := range toStrings(d["add"]) {
+				os.Add(e, ch.Hlc)
+			}
+		}
+		cols = append(cols, sc)
+		args = append(args, os.Marshal())
+	}
+	cols = append(cols, "field_hlc")
+	args = append(args, fc.Marshal())
+
+	ph := make([]string, len(cols))
+	for i := range ph {
+		ph[i] = "?"
+	}
+	q := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", spec.table,
+		strings.Join(cols, ", "), strings.Join(ph, ", "))
+	_, err := tx.ExecContext(ctx, tx.Rebind(q), args...)
+	return err
+}
+
+// updateMerge: merge an existing row field-by-field.
+func updateMerge(ctx context.Context, tx *sqlx.Tx, spec entitySpec, ch *wv1.Change, fields, row map[string]any) error {
+	fc := wsync.ParseFieldClock(asString(row["field_hlc"]))
+	var set []string
+	var args []any
+
+	for c, v := range fields {
+		if c == "id" || c == "field_hlc" {
+			continue
+		}
+		if isSetCol(spec, c) {
+			// OR-Set: union adds/removes from the delta (merge, not LWW).
+			os := wsync.ParseORSet(asString(row[c]))
+			if d, ok := v.(map[string]any); ok {
+				for _, e := range toStrings(d["add"]) {
+					os.Add(e, ch.Hlc)
+				}
+				for _, e := range toStrings(d["remove"]) {
+					os.Remove(e)
+				}
+			}
+			set = append(set, c+" = ?")
+			args = append(args, os.Marshal())
+		} else if inCols(spec, c) {
+			// Scalar: apply only if ch.Hlc is newer than the field clock.
+			if fc.Accept(c, ch.Hlc) {
+				set = append(set, c+" = ?")
+				args = append(args, v)
+			}
+		}
+	}
+	if len(set) == 0 {
+		return nil // everything stale -> nothing to do
+	}
+	set = append(set, "field_hlc = ?")
+	args = append(args, fc.Marshal())
+	args = append(args, ch.EntityId)
+	q := fmt.Sprintf("UPDATE %s SET %s WHERE id = ?", spec.table, strings.Join(set, ", "))
+	_, err := tx.ExecContext(ctx, tx.Rebind(q), args...)
+	return err
+}
+
+func appendChangeLog(ctx context.Context, tx *sqlx.Tx, ch *wv1.Change, orgID string) error {
+	// Increment the receive sequence atomically (portable, one writer per tx).
+	if _, err := tx.ExecContext(ctx, "UPDATE seq_counter SET val = val + 1 WHERE name = 'change'"); err != nil {
+		return err
+	}
+	var seq int64
+	if err := tx.GetContext(ctx, &seq, "SELECT val FROM seq_counter WHERE name = 'change'"); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx, tx.Rebind(`
+		INSERT INTO change_log (id, seq, scope_id, entity, entity_id, op, payload, hlc, author_id, org_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
+		uuid.NewString(), seq, ch.ScopeId, ch.Entity, ch.EntityId, int32(ch.Op), ch.PayloadJson, ch.Hlc, ch.AuthorId, orgID)
+	return err
+}
+
+// accessibleScopes = personal scope + own apiaries + shared apiaries.
+func (s *SyncService) accessibleScopes(ctx context.Context, userID, orgID string) ([]string, error) {
+	scopes := []string{"user:" + userID}
+	var owned []string
+	_ = s.db.SelectContext(ctx, &owned, s.db.Rebind(
+		`SELECT id FROM apiary WHERE organization_id = ?`), orgID)
+	scopes = append(scopes, owned...)
+	var shared []string
+	_ = s.db.SelectContext(ctx, &shared, s.db.Rebind(
+		`SELECT apiary_id FROM apiary_share WHERE benutzer_id = ?`), userID)
+	return append(scopes, shared...), nil
+}
+
+func cursorToSeq(c string) int64 {
+	var n int64
+	fmt.Sscanf(c, "%d", &n)
+	return n
+}
+func seqToCursor(seq int64) string { return fmt.Sprintf("%d", seq) }

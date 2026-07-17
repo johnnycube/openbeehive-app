@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package openbeehive.v1;
+
+import "google/protobuf/timestamp.proto";
+import "openbeehive/v1/common.proto";
+
+enum HiveType {
+  HIVE_TYPE_UNSPECIFIED = 0;
+  HIVE_TYPE_ZANDER = 1;
+  HIVE_TYPE_DADANT = 2;
+  HIVE_TYPE_DEUTSCH_NORMAL = 3;
+  HIVE_TYPE_LANGSTROTH = 4;
+  HIVE_TYPE_WARRE = 5;
+  HIVE_TYPE_TOP_BAR = 6;
+  HIVE_TYPE_SONSTIGE = 99;
+}
+
+enum HiveStatus {
+  HIVE_STATUS_UNSPECIFIED = 0;
+  HIVE_STATUS_ACTIVE = 1;
+  HIVE_STATUS_NUC = 2;     // nucleus colony
+  HIVE_STATUS_QUEENLESS = 3;
+  HIVE_STATUS_LOST = 4; // colony lost
+  HIVE_STATUS_DISSOLVED = 5;
+}
+
+message Hive {
+  string id = 1;
+  string organization_id = 2;
+  string apiary_id = 3;
+  string name = 4;
+  HiveType type = 5;
+  HiveStatus status = 6;
+  int32 boxes = 7;
+  string colony_origin = 8;     // e.g. swarm 2024, split from hive 3
+  string note = 9;
+  string qr_code = 10;          // for the hive's stock card
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  string photo = 13;            // representative photo (data URL or blob key)
+}
+
+message CreateHiveRequest {
+  string apiary_id = 1;
+  string name = 2;
+  HiveType type = 3;
+  int32 boxes = 4;
+  string colony_origin = 5;
+  string note = 6;
+}
+message CreateHiveResponse { Hive hive = 1; }
+
+message GetHiveRequest { string id = 1; }
+message GetHiveResponse { Hive hive = 1; }
+
+message ListHivesRequest {
+  PageRequest page = 1;
+  string apiary_id = 2; // optional filter
+}
+message ListHivesResponse {
+  repeated Hive hives = 1;
+  PageResponse page = 2;
+}
+
+message UpdateHiveRequest { Hive hive = 1; }
+message UpdateHiveResponse { Hive hive = 1; }
+
+message DeleteHiveRequest { string id = 1; }
+message DeleteHiveResponse {}
+
+// Record a relocation (migratory beekeeping, pro feature).
+message RelocateHiveRequest {
+  string id = 1;
+  string target_apiary_id = 2;
+  google.protobuf.Timestamp date = 3;
+}
+message RelocateHiveResponse { Hive hive = 1; }
+
+service HiveService {
+  rpc CreateHive(CreateHiveRequest) returns (CreateHiveResponse);
+  rpc GetHive(GetHiveRequest) returns (GetHiveResponse);
+  rpc ListHives(ListHivesRequest) returns (ListHivesResponse);
+  rpc UpdateHive(UpdateHiveRequest) returns (UpdateHiveResponse);
+  rpc DeleteHive(DeleteHiveRequest) returns (DeleteHiveResponse);
+  rpc RelocateHive(RelocateHiveRequest) returns (RelocateHiveResponse);
+}

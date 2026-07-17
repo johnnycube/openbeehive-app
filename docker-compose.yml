@@ -1,0 +1,50 @@
+# Cloud profile: Postgres + MinIO + the server (which embeds and serves the SPA).
+# For self-hosting, the single binary alone is enough (SQLite + filesystem).
+services:
+  postgres:
+    # Note: Postgres does not auto-upgrade data directories. If you have an
+    # existing volume from an older major (e.g. 16), dump/restore or pg_upgrade
+    # before switching the image tag.
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: openbeehive
+      POSTGRES_PASSWORD: openbeehive
+      POSTGRES_DB: openbeehive
+    volumes: [pg:/var/lib/postgresql/data]
+    ports: ["5432:5432"]
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes: [minio:/data]
+    ports: ["9000:9000", "9001:9001"]
+
+  # Multi-stage build (Dockerfile at repo root): builds the SPA, embeds it, and
+  # compiles the single binary that serves the app + API at :8080.
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on: [postgres, minio]
+    # All Openbeehive settings are namespaced BEEHIVE_*. The ${...} references
+    # read from your shell / .env when you run `docker compose`.
+    environment:
+      BEEHIVE_DEPLOYMENT_PROFILE: cloud
+      BEEHIVE_PUBLIC_BASE_URL: ${BEEHIVE_PUBLIC_BASE_URL:-http://localhost:8080}
+      BEEHIVE_DATABASE_DSN: postgres://openbeehive:openbeehive@postgres:5432/openbeehive?sslmode=disable
+      BEEHIVE_MINIO_ENDPOINT: minio:9000
+      BEEHIVE_MINIO_ACCESS_KEY: minioadmin
+      BEEHIVE_MINIO_SECRET_KEY: minioadmin
+      BEEHIVE_SESSION_SECRET: ${BEEHIVE_SESSION_SECRET}
+      BEEHIVE_OIDC_PROVIDERS: "google"
+      BEEHIVE_OIDC_GOOGLE_ISSUER: https://accounts.google.com
+      BEEHIVE_OIDC_GOOGLE_CLIENT_ID: ${BEEHIVE_OIDC_GOOGLE_CLIENT_ID}
+      BEEHIVE_OIDC_GOOGLE_CLIENT_SECRET: ${BEEHIVE_OIDC_GOOGLE_CLIENT_SECRET}
+    ports: ["8080:8080"]
+
+volumes:
+  pg:
+  minio:

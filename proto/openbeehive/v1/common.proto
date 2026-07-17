@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package openbeehive.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Pagination for all list calls.
+message PageRequest {
+  int32 page_size = 1;     // 0 => Server-Default
+  string page_token = 2;   // opaque Cursor
+}
+
+message PageResponse {
+  string next_page_token = 1;
+  int32 total = 2;
+}
+
+// International queen marking color (by year's last digit).
+enum MarkingColor {
+  MARKING_COLOR_UNSPECIFIED = 0;
+  MARKING_COLOR_WHITE = 1; // 1, 6
+  MARKING_COLOR_YELLOW = 2;  // 2, 7
+  MARKING_COLOR_RED = 3;   // 3, 8
+  MARKING_COLOR_GREEN = 4; // 4, 9
+  MARKING_COLOR_BLUE = 5;  // 5, 0
+}
+
+enum Stores {
+  STORES_UNSPECIFIED = 0;
+  STORES_GOOD = 1;
+  STORES_MEDIUM = 2;
+  STORES_LOW = 3;
+  STORES_NONE = 4;
+}
+
+enum Temperament {
+  TEMPERAMENT_UNSPECIFIED = 0;
+  TEMPERAMENT_VERY_GENTLE = 1;
+  TEMPERAMENT_GENTLE = 2;
+  TEMPERAMENT_NORMAL = 3;
+  TEMPERAMENT_NERVOUS = 4;
+  TEMPERAMENT_AGGRESSIVE = 5;
+}

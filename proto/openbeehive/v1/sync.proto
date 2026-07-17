@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package openbeehive.v1;
+
+// Generic sync protocol with per-field LWW.
+// payload_json contains only the CHANGED fields (partial delta):
+//   Skalar:  {"name": "Orchard Meadow", "note": "..."}
+//   Set:     {"photo_keys": {"add": ["k1"], "remove": ["k2"]}}  (OR-Set-Delta)
+// hlc stamps the whole delta; per field the field clock decides (LWW),
+// set fields are merged by union.
+
+enum ChangeOp {
+  CHANGE_OP_UNSPECIFIED = 0;
+  CHANGE_OP_UPSERT = 1;
+  CHANGE_OP_DELETE = 2; // Tombstone
+}
+
+message Change {
+  string entity = 1;     // "apiary" | "hive" | "queen" | "inspection" | "task"
+  string entity_id = 2;
+  string scope_id = 3;   // Apiary id or "user:<id>"
+  ChangeOp op = 4;
+  string payload_json = 5; // full row as JSON (empty on delete)
+  string hlc = 6;          // Hybrid Logical Clock, lexicographically sortable
+  string author_id = 7;
+}
+
+message PullRequest {
+  string cursor = 1;     // last seen server sequence ("" = from the start)
+  int32 limit = 2;       // 0 => Server-Default
+}
+message PullResponse {
+  repeated Change changes = 1;
+  string next_cursor = 2;
+  bool has_more = 3;     // more pages available -> pull again immediately
+}
+
+message PushRequest {
+  repeated Change changes = 1;
+}
+message Conflict {
+  string entity = 1;
+  string entity_id = 2;
+  string winning_hlc = 3; // the server-side winning version
+}
+message PushResponse {
+  string server_cursor = 1;     // current cursor after the push
+  repeated Conflict conflicts = 2; // rejected (stale) changes
+}
+
+// Optional live channel: nudges the device to pull on new changes.
+message SubscribeRequest { string cursor = 1; }
+message SubscribeEvent { string server_cursor = 1; }
+
+service SyncService {
+  rpc Pull(PullRequest) returns (PullResponse);
+  rpc Push(PushRequest) returns (PushResponse);
+  rpc Subscribe(SubscribeRequest) returns (stream SubscribeEvent);
+}

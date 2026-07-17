@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package openbeehive.v1;
+
+import "openbeehive/v1/task.proto";
+import "openbeehive/v1/inspection.proto";
+
+// Aggregated metrics for the dashboard.
+message DashboardRequest {}
+message DashboardResponse {
+  int32 apiaries = 1;
+  int32 hives = 2;
+  int32 active_queens = 3;
+  int32 open_tasks = 4;
+  int32 overdue_tasks = 5;
+  double honey_kg_season = 6;
+
+  // hives not inspected for >= threshold_days
+  repeated DueInspection due_inspections = 7;
+  repeated Task next_tasks = 8;
+  repeated Inspection recent_inspections = 9;
+  repeated HoneyPerMonth honey_history = 10;
+}
+
+message DueInspection {
+  string hive_id = 1;
+  string hive_name = 2;
+  string apiary_name = 3;
+  int32 days_since_last = 4; // -1 = never
+}
+
+message HoneyPerMonth {
+  int32 year = 1;
+  int32 month = 2;
+  double kg = 3;
+}
+
+service StatsService {
+  rpc Dashboard(DashboardRequest) returns (DashboardResponse);
+  rpc HoneyStats(HoneyStatsRequest) returns (HoneyStatsResponse);
+}
+
+// Yield analysis from the event fact table (type = HARVEST).
+message HoneyStatsRequest {
+  int32 year = 1; // 0 = all years
+}
+message HoneySum {
+  string key = 1; // id of queen/apiary or year
+  string label = 2;
+  double kg = 3;
+}
+message HoneyStatsResponse {
+  repeated HoneySum pro_queen = 1;
+  repeated HoneySum pro_apiary = 2;
+  repeated HoneySum pro_year = 3;
+}
