@@ -1,0 +1,26 @@
+# Gitea CI: build check only. Releases (image push to ghcr.io + GitHub release)
+# run on GitHub via .github/workflows/release.yml once the repo is mirrored
+# there — this file also stops Gitea from falling back to .github/workflows
+# and running the release job with credentials it doesn't have.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  docker-build:
+    name: Build image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Build single-binary image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false

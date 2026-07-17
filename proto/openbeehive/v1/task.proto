@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package openbeehive.v1;
+
+import "google/protobuf/timestamp.proto";
+import "openbeehive/v1/common.proto";
+
+enum TaskPriority {
+  TASK_PRIORITY_UNSPECIFIED = 0;
+  TASK_PRIORITY_LOW = 1;
+  TASK_PRIORITY_NORMAL = 2;
+  TASK_PRIORITY_HIGH = 3;
+}
+
+message Task {
+  string id = 1;
+  string organization_id = 2;
+  string title = 3;
+  string hive_id = 4;     // optional
+  string apiary_id = 5;  // optional
+  google.protobuf.Timestamp due_at = 6;
+  bool done = 7;
+  TaskPriority priority = 8;
+  string note = 9;
+  // recurrence (e.g. weekly varroa check) as an RRULE string
+  string recurrence = 10;
+  string assigned_to = 11; // user_id (Team)
+  google.protobuf.Timestamp created_at = 12;
+}
+
+message CreateTaskRequest {
+  string title = 1;
+  string hive_id = 2;
+  string apiary_id = 3;
+  google.protobuf.Timestamp due_at = 4;
+  TaskPriority priority = 5;
+  string note = 6;
+  string recurrence = 7;
+}
+message CreateTaskResponse { Task task = 1; }
+
+message ListTasksRequest {
+  PageRequest page = 1;
+  bool nur_open = 2;
+  string hive_id = 3;
+}
+message ListTasksResponse {
+  repeated Task tasks = 1;
+  PageResponse page = 2;
+}
+
+message SetTaskErledigtRequest {
+  string id = 1;
+  bool done = 2;
+}
+message SetTaskErledigtResponse { Task task = 1; }
+
+message DeleteTaskRequest { string id = 1; }
+message DeleteTaskResponse {}
+
+service TaskService {
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  rpc SetTaskErledigt(SetTaskErledigtRequest) returns (SetTaskErledigtResponse);
+  rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse);
+}

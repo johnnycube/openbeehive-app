@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package openbeehive.v1;
+
+import "google/protobuf/timestamp.proto";
+import "openbeehive/v1/common.proto";
+
+message Apiary {
+  string id = 1;
+  string organization_id = 2; // tenant
+  string name = 3;
+  string address = 4;            // address / GPS / parcel
+  double lat = 5;
+  double lng = 6;
+  string note = 7;
+  int32 hive_count = 8;    // computed, read-only
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message CreateApiaryRequest {
+  string name = 1;
+  string address = 2;
+  double lat = 3;
+  double lng = 4;
+  string note = 5;
+}
+message CreateApiaryResponse { Apiary apiary = 1; }
+
+message GetApiaryRequest { string id = 1; }
+message GetApiaryResponse { Apiary apiary = 1; }
+
+message ListApiariesRequest { PageRequest page = 1; }
+message ListApiariesResponse {
+  repeated Apiary apiaries = 1;
+  PageResponse page = 2;
+}
+
+message UpdateApiaryRequest {
+  string id = 1;
+  string name = 2;
+  string address = 3;
+  double lat = 4;
+  double lng = 5;
+  string note = 6;
+}
+message UpdateApiaryResponse { Apiary apiary = 1; }
+
+message DeleteApiaryRequest { string id = 1; }
+message DeleteApiaryResponse {}
+
+service ApiaryService {
+  rpc CreateApiary(CreateApiaryRequest) returns (CreateApiaryResponse);
+  rpc GetApiary(GetApiaryRequest) returns (GetApiaryResponse);
+  rpc ListApiaries(ListApiariesRequest) returns (ListApiariesResponse);
+  rpc UpdateApiary(UpdateApiaryRequest) returns (UpdateApiaryResponse);
+  rpc DeleteApiary(DeleteApiaryRequest) returns (DeleteApiaryResponse);
+}

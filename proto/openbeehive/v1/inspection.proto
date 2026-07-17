@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package openbeehive.v1;
+
+import "google/protobuf/timestamp.proto";
+import "openbeehive/v1/common.proto";
+
+// An inspection / a visit to a hive.
+message Inspection {
+  string id = 1;
+  string organization_id = 2;
+  string hive_id = 3;
+  google.protobuf.Timestamp date = 4;
+  string weather = 5;
+  bool queen_seen = 6;
+  bool eggs_seen = 7;
+  Temperament temperament = 8;
+  int32 frames = 9;       // occupied frames
+  Stores stores = 10;
+  int32 queen_cells = 11;
+  string varroa = 12;   // e.g. "3 mites/day debris count"
+  double honey_kg = 13;        // harvested during this inspection
+  string note = 14;
+  repeated string photo_keys = 15; // blob keys (MinIO/FS)
+  google.protobuf.Timestamp created_at = 16;
+
+  // Stockkarte detail: colony state, a calmness/steadiness rating (Wabensitz)
+  // and the activities done during this visit.
+  int32 brood_frames = 17;     // frames carrying brood
+  int32 calmness = 18;         // steadiness on the comb (Wabensitz), 1..4
+  double fed_kg = 19;          // feed given during this visit
+  int32 frames_added = 20;     // frames / foundation added
+  int32 frames_removed = 21;   // frames removed
+  bool drone_frame_cut = 22;   // drone brood frame cut out (varroa control)
+  bool super_added = 23;       // honey super added
+  double weight_kg = 24;       // hive weight at this visit
+  int32 youngest_larva = 25;   // age in days of the youngest larva seen (swarm timing)
+  bool covered_larva = 26;     // capped/sealed brood seen
+
+  // Climate readings (optional): temperature in °C and relative humidity in %,
+  // measured inside the hive and outside. Well suited to automated sensor feeds.
+  double temp_hive = 27;
+  double temp_outside = 28;
+  double humidity_hive = 29;
+  double humidity_outside = 30;
+}
+
+message CreateInspectionRequest {
+  string hive_id = 1;
+  google.protobuf.Timestamp date = 2;
+  string weather = 3;
+  bool queen_seen = 4;
+  bool eggs_seen = 5;
+  Temperament temperament = 6;
+  int32 frames = 7;
+  Stores stores = 8;
+  int32 queen_cells = 9;
+  string varroa = 10;
+  double honey_kg = 11;
+  string note = 12;
+  double temp_hive = 13;
+  double temp_outside = 14;
+  double humidity_hive = 15;
+  double humidity_outside = 16;
+}
+message CreateInspectionResponse { Inspection inspection = 1; }
+
+message ListInspectionsRequest {
+  PageRequest page = 1;
+  string hive_id = 2;
+}
+message ListInspectionsResponse {
+  repeated Inspection inspections = 1;
+  PageResponse page = 2;
+}
+
+message DeleteInspectionRequest { string id = 1; }
+message DeleteInspectionResponse {}
+
+// Pre-signed upload URL for a photo (MinIO presigned PUT or FS token).
+message PhotoUploadUrlRequest {
+  string inspection_id = 1;
+  string content_type = 2;
+}
+message PhotoUploadUrlResponse {
+  string upload_url = 1;
+  string blob_key = 2;
+}
+
+service InspectionService {
+  rpc CreateInspection(CreateInspectionRequest) returns (CreateInspectionResponse);
+  rpc ListInspections(ListInspectionsRequest) returns (ListInspectionsResponse);
+  rpc DeleteInspection(DeleteInspectionRequest) returns (DeleteInspectionResponse);
+  rpc PhotoUploadUrl(PhotoUploadUrlRequest) returns (PhotoUploadUrlResponse);
+}
+
+// --- Pro: Treatment (Bestandsbuch / medicine documentation) ---
+// The treatment service lives in treatment.proto.
+message Treatment {
+  string id = 1;
+  string organization_id = 2;
+  string apiary_id = 3;             // frozen context at application time
+  string hive_id = 4;
+  string queen_id = 5;              // frozen context (reigning queen)
+  google.protobuf.Timestamp date = 6;        // applied on
+  string product = 7;              // e.g. "Oxuvar 5.7%", "formic acid 60%"
+  string active_ingredient = 8;    // e.g. "oxalic acid"
+  string dose = 9;                 // e.g. "50 ml"
+  string method = 10;              // e.g. "trickling", "sublimation", "strips"
+  string batch_number = 11;        // batch / charge (legally required)
+  google.protobuf.Timestamp withdrawal_until = 12; // honey safe again from
+  string reason = 13;              // e.g. "varroa"
+  string note = 14;
+  google.protobuf.Timestamp created_at = 15;
+}
+
+// --- Profi: Harvest / Honeychargen ---
+message Harvest {
+  string id = 1;
+  string organization_id = 2;
+  string apiary_id = 3;
+  google.protobuf.Timestamp date = 4;
+  string variety = 5;         // spring flow, summer flow, forest, ...
+  double amount_kg = 6;
+  double water_content = 7;  // % (refractometer)
+  string batch_number = 8;
+  google.protobuf.Timestamp best_before = 9;
+  string note = 10;
+}

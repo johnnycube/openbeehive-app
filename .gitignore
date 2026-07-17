@@ -1,0 +1,61 @@
+# Generated code (run `make proto`)
+server/internal/gen/
+app/src/lib/proto/
+
+# Go
+server/bin/
+*.test
+*.out
+coverage.html
+
+# Embedded SPA build artifacts (populated by `make build`)
+server/internal/web/dist/*
+!server/internal/web/dist/.gitkeep
+
+# Node / SvelteKit
+app/node_modules/
+app/.svelte-kit/
+app/build/
+app/.vite/
+app/vite.config.js.timestamp-*
+app/vite.config.ts.timestamp-*
+*.tsbuildinfo
+.eslintcache
+
+# Local runtime data (self-host)
+*.db
+*.db-wal
+*.db-shm
+data/
+# ...but app/src/lib/data is source, not runtime data
+!app/src/lib/data/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# AI assistant files (local only)
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+AGENTS.md
+GEMINI.md
+.gemini/
+.cursorrules
+.cursor/
+.windsurfrules
+.windsurf/
+.aider*
+.codex/
+.mcp.json
+copilot-instructions.md
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+*.swp
+*.swo
