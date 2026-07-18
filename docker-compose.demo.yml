@@ -42,11 +42,9 @@ services:
       retries: 10
 
   server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    # Once releases are published, replace `build:` with the pinned image:
-    #   image: ghcr.io/johnnycube/openbeehive-app:0.1.0
+    # Published by .github/workflows/release.yml on each v* tag.
+    # Also available: :0.1 (minor track) and :latest.
+    image: ghcr.io/johnnycube/openbeehive-app:0.1.0
     restart: unless-stopped
     depends_on:
       postgres:
