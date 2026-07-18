@@ -17,10 +17,21 @@ async function getDb() {
   if (!dbPromise) {
     dbPromise = (async () => {
       const sqlite3 = await sqlite3InitModule();
-      // OPFS SAHPool VFS: persistent, no SharedArrayBuffer / cross-origin
-      // isolation required — works behind any reverse proxy.
-      const pool = await sqlite3.installOpfsSAHPoolVfs({ name: 'openbeehive' });
-      return new pool.OpfsSAHPoolDb('/' + dbName);
+      try {
+        // Persistent: OPFS SAHPool VFS (no SharedArrayBuffer / cross-origin
+        // isolation required — works behind any reverse proxy).
+        const pool = await sqlite3.installOpfsSAHPoolVfs({ name: 'openbeehive' });
+        return new pool.OpfsSAHPoolDb('/' + dbName);
+      } catch (err) {
+        // OPFS is unavailable in some environments — notably Firefox Private
+        // Browsing and browsers/settings that block storage — where
+        // navigator.storage.getDirectory() throws a SecurityError. Fall back to
+        // an in-memory database so the app still works this session; data won't
+        // persist across reloads. That's fine for the demo (reseeded hourly and
+        // pulled fresh) and a graceful degradation everywhere else.
+        console.warn('OPFS unavailable — using a non-persistent in-memory store:', err);
+        return new sqlite3.oo1.DB(':memory:', 'c');
+      }
     })();
   }
   return dbPromise;
