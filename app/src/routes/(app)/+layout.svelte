@@ -2,8 +2,19 @@
   import { _ } from 'svelte-i18n';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
   import { startSync } from '$lib/local/sync';
   import NavIcon from '$lib/components/NavIcon.svelte';
+
+  const api = (import.meta.env.BEEHIVE_API_URL ?? '').replace(/\/$/, '');
+  async function fetchJSON(path: string, opts: RequestInit = {}) {
+    try {
+      const r = await fetch(`${api}${path}`, { credentials: 'include', ...opts });
+      return r.ok ? await r.json() : null;
+    } catch {
+      return null;
+    }
+  }
 
   let online = $state(true);
   let email = $state('local@openbeehive');
@@ -13,29 +24,67 @@
   const initial = $derived((email[0] ?? 'L').toUpperCase());
 
   onMount(() => {
-    // Self-host single-user identity: matches the server's LocalUser so that
-    // pushed rows (organization_id = "local") are returned again on Pull.
-    if (!localStorage.getItem('obh.userId')) localStorage.setItem('obh.userId', 'local');
-    if (!localStorage.getItem('obh.orgId')) localStorage.setItem('obh.orgId', 'local');
-    email = localStorage.getItem('obh.email') ?? 'local@openbeehive';
-
-    // Ask the server who we are; show a banner when signed in as the demo user.
-    const api = (import.meta.env.BEEHIVE_API_URL ?? '').replace(/\/$/, '');
-    const tok = localStorage.getItem('session');
-    fetch(`${api}/auth/me`, {
-      credentials: 'include',
-      headers: tok ? { Authorization: `Bearer ${tok}` } : {}
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (j) { isDemo = !!j.is_demo; if (j.email) email = j.email; } })
-      .catch(() => {});
-
     online = navigator.onLine;
     const on = () => (online = true);
     const off = () => (online = false);
     addEventListener('online', on);
     addEventListener('offline', off);
-    startSync(); // start background sync
+
+    // Resolve the session before starting sync. Without this an unauthenticated
+    // visitor to a cloud/demo instance would land in an empty shell while the
+    // sync loop 401s. (Async work in an IIFE so onMount can still return the
+    // listener cleanup synchronously.)
+    void (async () => {
+      const inst = (await fetchJSON('/auth/instance')) ?? {};
+      const authRequired = !!(inst.password_auth || inst.oidc_providers?.length || inst.webauthn || inst.demo);
+
+      const tok = localStorage.getItem('session');
+      const me = await fetchJSON('/auth/me', {
+        headers: tok ? { Authorization: `Bearer ${tok}` } : {}
+      });
+
+      if (authRequired && !me) {
+        // Public demo: sign in as the demo user automatically so the URL "just
+        // works". Guarded so a failing demo-login can't loop on reload.
+        if (inst.demo && !sessionStorage.getItem('obh.demoTried')) {
+          sessionStorage.setItem('obh.demoTried', '1');
+          const j = await fetchJSON('/auth/demo-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}'
+          });
+          if (j?.token) {
+            localStorage.setItem('session', j.token);
+            if (j.user_id) localStorage.setItem('obh.userId', j.user_id);
+            if (j.active_org) localStorage.setItem('obh.orgId', j.active_org);
+            localStorage.setItem('obh.email', 'demo');
+            location.href = '/'; // full reload: opens the tenant store, then sync runs authenticated
+            return;
+          }
+        }
+        // Otherwise this instance needs a real login.
+        goto('/login');
+        return;
+      }
+      sessionStorage.removeItem('obh.demoTried');
+
+      if (me) {
+        // Signed in: mirror the server identity into the local store keys.
+        if (me.user_id) localStorage.setItem('obh.userId', me.user_id);
+        if (me.active_org) localStorage.setItem('obh.orgId', me.active_org);
+        if (me.email) { localStorage.setItem('obh.email', me.email); email = me.email; }
+        isDemo = !!me.is_demo;
+      } else {
+        // Single-user self-host (no auth configured): fixed "local" identity so
+        // pushed rows (organization_id = "local") are returned again on Pull.
+        if (!localStorage.getItem('obh.userId')) localStorage.setItem('obh.userId', 'local');
+        if (!localStorage.getItem('obh.orgId')) localStorage.setItem('obh.orgId', 'local');
+        email = localStorage.getItem('obh.email') ?? 'local@openbeehive';
+      }
+
+      startSync(); // start background sync once a session (or single-user identity) is established
+    })();
+
     return () => { removeEventListener('online', on); removeEventListener('offline', off); };
   });
 
