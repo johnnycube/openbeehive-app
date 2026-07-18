@@ -8,7 +8,7 @@ import { parseFieldClock, accept, parseORSet, orAdd, orRemove } from './merge';
 import { bumpData } from './live';
 import { syncClient } from '$lib/client'; // generated Connect client (SyncService)
 
-const SYNCED_TABLES = ['apiary', 'hive', 'queen', 'inspection', 'task', 'placement', 'harvest', 'event'];
+const SYNCED_TABLES = ['apiary', 'hive', 'queen', 'inspection', 'task', 'placement', 'harvest', 'treatment', 'event'];
 const SET_COLS: Record<string, string[]> = { inspection: ['photo_keys'] };
 
 async function getCursor(): Promise<string> {
