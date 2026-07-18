@@ -75,6 +75,15 @@ func (p *PasswordAuth) signup(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+	// No public account creation on a demo instance. The seeded demo account is
+	// the only login; without this, the first visitor to hit setup would create
+	// the instance-admin account (first-run setup bypasses invite-only). This is
+	// the authoritative server-side block — the login UI hiding setup is not
+	// enough.
+	if p.cfg.Demo.Enabled {
+		respondJSON(w, http.StatusForbidden, map[string]any{"error": "sign-up is disabled on the demo"})
+		return
+	}
 	var req credsReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid body"})

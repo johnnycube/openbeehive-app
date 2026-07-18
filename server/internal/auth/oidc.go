@@ -174,6 +174,11 @@ func provisionOIDCUser(ctx context.Context, users storage.UserRepo, prov *Provis
 	if err != nil {
 		return nil, err
 	}
+	// Demo instances never provision new accounts (the seeded demo user is the
+	// only login). Closes the first-run-admin path here too, mirroring signup.
+	if cfg.Demo.Enabled {
+		return nil, errInviteOnly
+	}
 	if !cfg.Auth.RegistrationOpen && count > 0 {
 		return nil, errInviteOnly
 	}
