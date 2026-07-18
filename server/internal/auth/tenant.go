@@ -52,7 +52,10 @@ func (t *TenantAPI) instance(w http.ResponseWriter, r *http.Request) {
 		providers = []string{}
 	}
 	respondJSON(w, http.StatusOK, map[string]any{
-		"needs_setup":        n == 0, // first run: the next sign-up is the admin
+		// First run: the next sign-up is the admin — but never on a demo instance,
+		// where public sign-up is disabled, so the login screen shows the demo
+		// button instead of an instance-setup form.
+		"needs_setup":        n == 0 && !t.cfg.Demo.Enabled,
 		"password_auth":      t.cfg.Auth.PasswordEnabled,
 		"registration":       t.cfg.Auth.RegistrationOpen,
 		"email_verification": t.cfg.Auth.EmailVerification,

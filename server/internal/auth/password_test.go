@@ -96,7 +96,7 @@ func TestSignupInviteOnly(t *testing.T) {
 	}
 }
 
-func TestSeededDemoUserDoesNotSwallowFirstRunSetup(t *testing.T) {
+func TestDemoInstanceDisablesPublicSignup(t *testing.T) {
 	cfg := &config.Config{Profile: "selfhost"}
 	cfg.Auth.PasswordEnabled = true
 	cfg.Auth.RegistrationOpen = false
@@ -110,19 +110,20 @@ func TestSeededDemoUserDoesNotSwallowFirstRunSetup(t *testing.T) {
 		t.Fatalf("demo user: %v", err)
 	}
 
-	// The operator's first account must still pass the invite-only gate and
-	// become the admin.
+	// Public sign-up is disabled on a demo instance. Without this, the seeded
+	// demo user is excluded from realUserCount, so the instance looks like it
+	// "needs setup" and the first visitor to POST /auth/signup would create the
+	// instance-admin account (first-run setup bypasses invite-only). The demo
+	// login is the only door; no account may be created via the public URL.
 	code, j := postJSON(t, srv.URL+"/auth/signup",
 		map[string]string{"email": "admin@test.dev", "password": "password123"})
-	if code != http.StatusOK || j["admin"] != true {
-		t.Fatalf("operator signup on demo instance: code=%d resp=%v", code, j)
+	if code != http.StatusForbidden {
+		t.Fatalf("signup on demo instance must be forbidden: code=%d resp=%v", code, j)
 	}
 
-	// After that, the instance is closed again.
-	code, _ = postJSON(t, srv.URL+"/auth/signup",
-		map[string]string{"email": "stranger@test.dev", "password": "password123"})
-	if code != http.StatusForbidden {
-		t.Fatalf("stranger signup: code=%d", code)
+	// And no account was created as a side effect.
+	if _, err := store.Users().GetByEmail(context.Background(), "admin@test.dev"); err == nil {
+		t.Fatalf("signup on demo instance must not create an account")
 	}
 }
 
