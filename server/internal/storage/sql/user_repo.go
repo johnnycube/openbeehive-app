@@ -62,14 +62,14 @@ func (r *userRepo) GetByVerifyToken(ctx context.Context, token string) (*storage
 }
 
 func (r *userRepo) LinkOIDC(ctx context.Context, id, subject string) error {
-	return r.s.exec(ctx, `UPDATE user SET oidc_subject = ? WHERE id = ?`, subject, id)
+	return r.s.exec(ctx, `UPDATE users SET oidc_subject = ? WHERE id = ?`, subject, id)
 }
 
 func (r *userRepo) getBy(ctx context.Context, where, arg string) (*storage.User, error) {
 	var row userRow
 	err := r.s.db.GetContext(ctx, &row, r.s.db.Rebind(
 		`SELECT id, email, name, oidc_subject, password_hash, role, email_verified, verification_token, created_at
-		 FROM user WHERE `+where), arg)
+		 FROM users WHERE `+where), arg)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, storage.ErrNotFound
 	}
@@ -85,11 +85,11 @@ func (r *userRepo) Create(ctx context.Context, u *storage.User) error {
 		verified = 1
 	}
 	return r.s.exec(ctx, `
-		INSERT INTO user (id, email, name, oidc_subject, password_hash, role, email_verified, verification_token, created_at)
+		INSERT INTO users (id, email, name, oidc_subject, password_hash, role, email_verified, verification_token, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		u.ID, u.Email, u.Name, u.OIDCSubject, u.PasswordHash, u.Role, verified, u.VerifyToken, u.CreatedAt)
 }
 
 func (r *userRepo) MarkVerified(ctx context.Context, id string) error {
-	return r.s.exec(ctx, `UPDATE user SET email_verified = 1, verification_token = '' WHERE id = ?`, id)
+	return r.s.exec(ctx, `UPDATE users SET email_verified = 1, verification_token = '' WHERE id = ?`, id)
 }

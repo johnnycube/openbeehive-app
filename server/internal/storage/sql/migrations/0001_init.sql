@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS organization (
   created_at  TIMESTAMP NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS user (
+CREATE TABLE IF NOT EXISTS "user" (
   id           TEXT PRIMARY KEY,
   email        TEXT NOT NULL UNIQUE,
   name         TEXT NOT NULL DEFAULT '',
