@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Openbeehive", "tagline": "Imker-Buchführung" },
+  "app": {
+    "name": "Openbeehive",
+    "tagline": "Imker-Buchführung"
+  },
   "nav": {
     "features": "Funktionen",
     "why": "Warum",
@@ -15,7 +18,9 @@
     "scan": "Scannen",
     "settings": "Einstellungen"
   },
-  "qr": { "print": "Drucken" },
+  "qr": {
+    "print": "Drucken"
+  },
   "scan": {
     "aim": "QR-Code der Beute anvisieren",
     "starting": "Kamera wird gestartet …",
@@ -64,9 +69,12 @@
     "continue_with": "Weiter mit {provider}",
     "err_generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
     "invite_only_banner": "Diese Instanz ist nur mit Einladung nutzbar. Die Registrierung ist deaktiviert – melde dich mit einem bestehenden Konto an oder nutze deinen Einladungslink.",
-    "invited_banner": "Du wurdest eingeladen. Erstelle unten dein Konto – oder melde dich an, wenn du schon eines hast."
+    "invited_banner": "Du wurdest eingeladen. Erstelle unten dein Konto – oder melde dich an, wenn du schon eines hast.",
+    "passkey_signin": "Mit Passkey anmelden"
   },
-  "demo": { "banner": "Du erkundest die Openbeehive-Demo – die Daten werden stündlich zurückgesetzt." },
+  "demo": {
+    "banner": "Du erkundest die Openbeehive-Demo – die Daten werden stündlich zurückgesetzt."
+  },
   "tenant": {
     "title": "Mandanten",
     "help": "Wechsle zwischen deinen Standort-Sammlungen oder lege eine neue an (z. B. einen Verein).",
@@ -225,11 +233,22 @@
     "edit": "Aufgabe bearbeiten"
   },
   "hivetype": {
-    "0": "Unbestimmt", "1": "Zander", "2": "Dadant", "3": "Deutsch Normal",
-    "4": "Langstroth", "5": "Warré", "6": "Top-Bar", "99": "Sonstige"
+    "0": "Unbestimmt",
+    "1": "Zander",
+    "2": "Dadant",
+    "3": "Deutsch Normal",
+    "4": "Langstroth",
+    "5": "Warré",
+    "6": "Top-Bar",
+    "99": "Sonstige"
   },
   "hivestatus": {
-    "0": "Unbestimmt", "1": "Aktiv", "2": "Ableger", "3": "Weisellos", "4": "Verloren", "5": "Aufgelöst"
+    "0": "Unbestimmt",
+    "1": "Aktiv",
+    "2": "Ableger",
+    "3": "Weisellos",
+    "4": "Verloren",
+    "5": "Aufgelöst"
   },
   "insp": {
     "record": "Durchsicht erfassen",
@@ -306,11 +325,50 @@
     "reason_ph": "z. B. Varroa",
     "withdrawal": "Wartezeit bis"
   },
-  "temperament": { "0": "—", "1": "Sehr sanft", "2": "Sanft", "3": "Normal", "4": "Nervös", "5": "Aggressiv" },
-  "storeslvl": { "0": "—", "1": "Gut", "2": "Mittel", "3": "Wenig", "4": "Keines" },
-  "calmlvl": { "0": "—", "1": "Läuft ab", "2": "Unruhig", "3": "Ruhig", "4": "Sehr ruhig" },
+  "temperament": {
+    "0": "—",
+    "1": "Sehr sanft",
+    "2": "Sanft",
+    "3": "Normal",
+    "4": "Nervös",
+    "5": "Aggressiv"
+  },
+  "storeslvl": {
+    "0": "—",
+    "1": "Gut",
+    "2": "Mittel",
+    "3": "Wenig",
+    "4": "Keines"
+  },
+  "calmlvl": {
+    "0": "—",
+    "1": "Läuft ab",
+    "2": "Unruhig",
+    "3": "Ruhig",
+    "4": "Sehr ruhig"
+  },
   "common": {
-    "new": "Neu", "save": "Speichern", "cancel": "Abbrechen", "delete": "Löschen", "edit": "Bearbeiten",
-    "kg": "kg", "back": "Zurück", "confirm_delete": "Wirklich löschen? Das kann nicht rückgängig gemacht werden."
+    "new": "Neu",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "kg": "kg",
+    "back": "Zurück",
+    "confirm_delete": "Wirklich löschen? Das kann nicht rückgängig gemacht werden."
+  },
+  "pk": {
+    "title": "Passkeys",
+    "help": "Anmeldung ohne Passwort per Face ID, Fingerabdruck oder Sicherheitsschlüssel. Ein Passkey ist an dieses Konto gebunden und wird auf deinem Gerät gespeichert.",
+    "added": "Passkey hinzugefügt.",
+    "add": "Passkey hinzufügen",
+    "name_ph": "Passkey benennen (z. B. MacBook)",
+    "none": "Noch keine Passkeys.",
+    "unnamed": "Unbenannter Passkey",
+    "created": "Hinzugefügt",
+    "last_used": "Zuletzt verwendet",
+    "delete": "Entfernen",
+    "delete_confirm": "Diesen Passkey entfernen? Eine Anmeldung damit ist dann nicht mehr möglich.",
+    "not_supported": "Dieser Browser unterstützt keine Passkeys."
   }
 }

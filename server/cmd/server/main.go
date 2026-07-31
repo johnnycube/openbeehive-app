@@ -100,12 +100,12 @@ func main() {
 		mux.HandleFunc("/auth/callback", am.CallbackHandler(sessions, store.Users(), prov, cfg))
 	}
 	if cfg.Auth.WebAuthn.Enabled {
-		wa, err := auth.NewWebAuthn(cfg, store.DB())
+		wa, err := auth.NewWebAuthn(cfg, store.DB(), store.Users(), prov, sessions)
 		if err != nil {
 			log.Fatalf("webauthn: %v", err)
 		}
 		log.Printf("auth: WebAuthn enabled (rp=%s)", cfg.Auth.WebAuthn.RPID)
-		wa.Routes(mux, sessions)
+		wa.Routes(mux)
 	}
 
 	if authEnabled {

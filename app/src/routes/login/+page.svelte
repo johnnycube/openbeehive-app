@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { _ } from 'svelte-i18n';
+  import { passkeyLogin, passkeysSupported } from '$lib/webauthn';
 
   // Auth endpoints are on the API origin. Empty = same origin (single-binary prod).
   const API = (import.meta.env.BEEHIVE_API_URL ?? '').replace(/\/$/, '');
@@ -96,6 +97,20 @@
     }
   }
 
+  async function passkeySignin() {
+    if (busy) return;
+    busy = true; error = '';
+    try {
+      let j = await passkeyLogin(API);
+      if (inviteToken) j = await acceptInvite(j);
+      persist(j, j.email ?? '');
+    } catch (e) {
+      error = String((e as Error)?.message ?? e) || $_('auth.err_generic');
+    } finally {
+      busy = false;
+    }
+  }
+
   async function demoLogin() {
     if (busy) return;
     busy = true; error = '';
@@ -151,6 +166,10 @@
 
       {#if demoEnabled}
         <button class="primary demo" onclick={demoLogin} disabled={busy}>🐝 {$_('auth.try_demo')}</button>
+      {/if}
+
+      {#if webauthn && mode === 'signin' && passkeysSupported()}
+        <button class="provider pk" onclick={passkeySignin} disabled={busy}>🔑 {$_('auth.passkey_signin')}</button>
       {/if}
 
       {#if hasPassword}
@@ -219,6 +238,8 @@
   .provider { display: block; padding: 11px; border: 1px solid var(--line, #e5dcc6); border-radius: 12px;
     text-decoration: none; color: var(--ink, #2c2316); font-weight: 600; background: #fff; }
   .provider:hover { border-color: var(--honey, #c77f22); }
+  .provider.pk { font: inherit; font-weight: 600; width: 100%; cursor: pointer; margin-top: 2px; }
+  .provider.pk:disabled { opacity: .6; cursor: default; }
   .link { background: none; border: none; cursor: pointer; color: var(--honey-d, #a4641a);
     font: inherit; font-weight: 600; font-size: .88rem; margin-top: 12px; }
 </style>

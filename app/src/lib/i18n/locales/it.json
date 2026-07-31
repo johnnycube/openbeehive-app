@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Openbeehive", "tagline": "Registro apistico" },
+  "app": {
+    "name": "Openbeehive",
+    "tagline": "Registro apistico"
+  },
   "nav": {
     "features": "Funzionalità",
     "why": "Perché",
@@ -15,7 +18,9 @@
     "scan": "Scansiona",
     "settings": "Impostazioni"
   },
-  "qr": { "print": "Stampa" },
+  "qr": {
+    "print": "Stampa"
+  },
   "scan": {
     "aim": "Inquadra il codice QR dell'arnia",
     "starting": "Avvio della fotocamera…",
@@ -64,9 +69,12 @@
     "continue_with": "Continua con {provider}",
     "err_generic": "Qualcosa è andato storto. Riprova.",
     "invite_only_banner": "Questa istanza è solo su invito. La registrazione è disattivata: accedi con un account esistente o usa il tuo link di invito.",
-    "invited_banner": "Hai ricevuto un invito. Crea il tuo account qui sotto, oppure accedi se ne hai già uno."
+    "invited_banner": "Hai ricevuto un invito. Crea il tuo account qui sotto, oppure accedi se ne hai già uno.",
+    "passkey_signin": "Accedi con passkey"
   },
-  "demo": { "banner": "Stai esplorando la demo di Openbeehive: i dati si reimpostano ogni ora." },
+  "demo": {
+    "banner": "Stai esplorando la demo di Openbeehive: i dati si reimpostano ogni ora."
+  },
   "tenant": {
     "title": "Spazi",
     "help": "Passa da una raccolta di apiari all'altra o creane una nuova (es. un club).",
@@ -225,11 +233,22 @@
     "edit": "Modifica attività"
   },
   "hivetype": {
-    "0": "Non specificato", "1": "Zander", "2": "Dadant", "3": "Deutsch Normal",
-    "4": "Langstroth", "5": "Warré", "6": "Top-bar", "99": "Altro"
+    "0": "Non specificato",
+    "1": "Zander",
+    "2": "Dadant",
+    "3": "Deutsch Normal",
+    "4": "Langstroth",
+    "5": "Warré",
+    "6": "Top-bar",
+    "99": "Altro"
   },
   "hivestatus": {
-    "0": "Non specificato", "1": "Attiva", "2": "Nucleo", "3": "Orfana", "4": "Persa", "5": "Sciolta"
+    "0": "Non specificato",
+    "1": "Attiva",
+    "2": "Nucleo",
+    "3": "Orfana",
+    "4": "Persa",
+    "5": "Sciolta"
   },
   "insp": {
     "record": "Registra visita",
@@ -306,11 +325,50 @@
     "reason_ph": "es. varroa",
     "withdrawal": "Tempo di attesa fino al"
   },
-  "temperament": { "0": "—", "1": "Molto docile", "2": "Docile", "3": "Normale", "4": "Nervosa", "5": "Aggressiva" },
-  "storeslvl": { "0": "—", "1": "Buone", "2": "Medie", "3": "Scarse", "4": "Assenti" },
-  "calmlvl": { "0": "—", "1": "Fugge dal favo", "2": "Irrequieta", "3": "Calma", "4": "Molto calma" },
+  "temperament": {
+    "0": "—",
+    "1": "Molto docile",
+    "2": "Docile",
+    "3": "Normale",
+    "4": "Nervosa",
+    "5": "Aggressiva"
+  },
+  "storeslvl": {
+    "0": "—",
+    "1": "Buone",
+    "2": "Medie",
+    "3": "Scarse",
+    "4": "Assenti"
+  },
+  "calmlvl": {
+    "0": "—",
+    "1": "Fugge dal favo",
+    "2": "Irrequieta",
+    "3": "Calma",
+    "4": "Molto calma"
+  },
   "common": {
-    "new": "Nuovo", "save": "Salva", "cancel": "Annulla", "delete": "Elimina", "edit": "Modifica",
-    "kg": "kg", "back": "Indietro", "confirm_delete": "Eliminare questo? L'operazione non può essere annullata."
+    "new": "Nuovo",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "kg": "kg",
+    "back": "Indietro",
+    "confirm_delete": "Eliminare questo? L'operazione non può essere annullata."
+  },
+  "pk": {
+    "title": "Passkeys",
+    "help": "Accedi senza password con Face ID, impronta o chiave di sicurezza. La passkey è legata a questo account e salvata sul tuo dispositivo.",
+    "added": "Passkey aggiunta.",
+    "add": "Aggiungi passkey",
+    "name_ph": "Dai un nome alla passkey (es. MacBook)",
+    "none": "Ancora nessuna passkey.",
+    "unnamed": "Passkey senza nome",
+    "created": "Aggiunta",
+    "last_used": "Ultimo utilizzo",
+    "delete": "Rimuovi",
+    "delete_confirm": "Rimuovere questa passkey? Non potrai più accedere con essa.",
+    "not_supported": "Questo browser non supporta le passkey."
   }
 }

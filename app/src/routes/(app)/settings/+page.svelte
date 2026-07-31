@@ -5,6 +5,9 @@
   import {
     exportJSON, exportXLSX, exportCSVZip, exportBeeXML, printReport, importFile, type ImportMode
   } from '$lib/data/portability';
+  import {
+    enrollPasskey, listPasskeys, deletePasskey, passkeysSupported, type PasskeyInfo
+  } from '$lib/webauthn';
 
   const API = (import.meta.env.BEEHIVE_API_URL ?? '').replace(/\/$/, '');
 
@@ -51,9 +54,42 @@
       tenants = j.tenants ?? [];
       activeOrg = j.active_org ?? '';
       await loadInvites();
+      await loadPasskeys();
     } catch { /* single-user mode: no tenants */ }
   }
   onMount(loadTenants);
+
+  // --- Passkeys (bound to the signed-in account) ---
+  let passkeys = $state<PasskeyInfo[]>([]);
+  let pkName = $state('');
+  let pkMsg = $state('');
+  let pkErr = $state(false);
+  let pkBusy = $state(false);
+
+  async function loadPasskeys() {
+    passkeys = await listPasskeys(API, authHeaders());
+  }
+
+  async function addPasskey() {
+    if (pkBusy) return;
+    pkBusy = true; pkMsg = ''; pkErr = false;
+    try {
+      await enrollPasskey(API, pkName.trim(), authHeaders());
+      pkName = '';
+      pkMsg = $_('pk.added');
+      await loadPasskeys();
+    } catch (e) {
+      pkErr = true;
+      pkMsg = String((e as Error)?.message ?? e);
+    } finally {
+      pkBusy = false;
+    }
+  }
+
+  async function removePasskey(id: string) {
+    if (!confirm($_('pk.delete_confirm'))) return;
+    if (await deletePasskey(API, id, authHeaders())) await loadPasskeys();
+  }
 
   async function loadInvites() {
     // Owner-only endpoint; non-owners get a 403 and simply see no list.
@@ -248,6 +284,42 @@
           <button class="data-btn danger" onclick={deleteTenant}>{$_('tenant.delete')}</button>
         </div>
       {/if}
+    </section>
+  {/if}
+
+  {#if signedIn}
+    <section class="card">
+      <h2>{$_('pk.title')}</h2>
+      <p class="help">{$_('pk.help')}</p>
+      {#if passkeys.length}
+        <ul class="invites">
+          {#each passkeys as k (k.id)}
+            <li>
+              <div class="imeta">
+                <strong>🔑 {k.name || $_('pk.unnamed')}</strong>
+                <span class="idate">{$_('pk.created')} {new Date(k.created_at).toLocaleDateString($locale ?? undefined)}</span>
+                {#if k.last_used_at}
+                  <span class="idate">{$_('pk.last_used')} {new Date(k.last_used_at).toLocaleDateString($locale ?? undefined)}</span>
+                {/if}
+              </div>
+              <div class="iactions">
+                <button class="data-btn danger" onclick={() => removePasskey(k.id)}>{$_('pk.delete')}</button>
+              </div>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="help">{$_('pk.none')}</p>
+      {/if}
+      {#if passkeysSupported()}
+        <div class="trow">
+          <input bind:value={pkName} placeholder={$_('pk.name_ph')} disabled={pkBusy} />
+          <button class="data-btn" onclick={addPasskey} disabled={pkBusy}>+ {$_('pk.add')}</button>
+        </div>
+      {:else}
+        <p class="help">{$_('pk.not_supported')}</p>
+      {/if}
+      {#if pkMsg}<p class="import-msg" class:err={pkErr}>{pkMsg}</p>{/if}
     </section>
   {/if}
 

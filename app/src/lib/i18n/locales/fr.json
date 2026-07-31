@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Openbeehive", "tagline": "Carnet d'apiculture" },
+  "app": {
+    "name": "Openbeehive",
+    "tagline": "Carnet d'apiculture"
+  },
   "nav": {
     "features": "Fonctionnalités",
     "why": "Pourquoi",
@@ -15,7 +18,9 @@
     "scan": "Scanner",
     "settings": "Paramètres"
   },
-  "qr": { "print": "Imprimer" },
+  "qr": {
+    "print": "Imprimer"
+  },
   "scan": {
     "aim": "Visez le code QR de la ruche",
     "starting": "Démarrage de la caméra…",
@@ -64,9 +69,12 @@
     "continue_with": "Continuer avec {provider}",
     "err_generic": "Une erreur s'est produite. Veuillez réessayer.",
     "invite_only_banner": "Cette instance est accessible sur invitation uniquement. Les inscriptions sont désactivées — connectez-vous avec un compte existant ou utilisez votre lien d'invitation.",
-    "invited_banner": "Vous avez reçu une invitation. Créez votre compte ci-dessous — ou connectez-vous si vous en avez déjà un."
+    "invited_banner": "Vous avez reçu une invitation. Créez votre compte ci-dessous — ou connectez-vous si vous en avez déjà un.",
+    "passkey_signin": "Se connecter avec une passkey"
   },
-  "demo": { "banner": "Vous explorez la démo d'Openbeehive — les données sont réinitialisées chaque heure." },
+  "demo": {
+    "banner": "Vous explorez la démo d'Openbeehive — les données sont réinitialisées chaque heure."
+  },
   "tenant": {
     "title": "Espaces",
     "help": "Basculez entre vos collections de ruchers, ou créez-en une nouvelle (p. ex. un club).",
@@ -225,11 +233,22 @@
     "edit": "Modifier la tâche"
   },
   "hivetype": {
-    "0": "Non précisé", "1": "Zander", "2": "Dadant", "3": "Deutsch Normal",
-    "4": "Langstroth", "5": "Warré", "6": "Top-bar", "99": "Autre"
+    "0": "Non précisé",
+    "1": "Zander",
+    "2": "Dadant",
+    "3": "Deutsch Normal",
+    "4": "Langstroth",
+    "5": "Warré",
+    "6": "Top-bar",
+    "99": "Autre"
   },
   "hivestatus": {
-    "0": "Non précisé", "1": "Active", "2": "Nucléus", "3": "Orpheline", "4": "Perdue", "5": "Dissoute"
+    "0": "Non précisé",
+    "1": "Active",
+    "2": "Nucléus",
+    "3": "Orpheline",
+    "4": "Perdue",
+    "5": "Dissoute"
   },
   "insp": {
     "record": "Enregistrer une visite",
@@ -306,11 +325,50 @@
     "reason_ph": "p. ex. varroa",
     "withdrawal": "Délai d'attente jusqu'au"
   },
-  "temperament": { "0": "—", "1": "Très douce", "2": "Douce", "3": "Normale", "4": "Nerveuse", "5": "Agressive" },
-  "storeslvl": { "0": "—", "1": "Bonnes", "2": "Moyennes", "3": "Faibles", "4": "Nulles" },
-  "calmlvl": { "0": "—", "1": "Quitte le cadre", "2": "Agitée", "3": "Calme", "4": "Très calme" },
+  "temperament": {
+    "0": "—",
+    "1": "Très douce",
+    "2": "Douce",
+    "3": "Normale",
+    "4": "Nerveuse",
+    "5": "Agressive"
+  },
+  "storeslvl": {
+    "0": "—",
+    "1": "Bonnes",
+    "2": "Moyennes",
+    "3": "Faibles",
+    "4": "Nulles"
+  },
+  "calmlvl": {
+    "0": "—",
+    "1": "Quitte le cadre",
+    "2": "Agitée",
+    "3": "Calme",
+    "4": "Très calme"
+  },
   "common": {
-    "new": "Nouveau", "save": "Enregistrer", "cancel": "Annuler", "delete": "Supprimer", "edit": "Modifier",
-    "kg": "kg", "back": "Retour", "confirm_delete": "Supprimer ceci ? Cette action est irréversible."
+    "new": "Nouveau",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "kg": "kg",
+    "back": "Retour",
+    "confirm_delete": "Supprimer ceci ? Cette action est irréversible."
+  },
+  "pk": {
+    "title": "Passkeys",
+    "help": "Connectez-vous sans mot de passe avec Face ID, empreinte ou clé de sécurité. La passkey est liée à ce compte et stockée sur votre appareil.",
+    "added": "Passkey ajoutée.",
+    "add": "Ajouter une passkey",
+    "name_ph": "Nommer cette passkey (p. ex. MacBook)",
+    "none": "Aucune passkey pour le moment.",
+    "unnamed": "Passkey sans nom",
+    "created": "Ajoutée",
+    "last_used": "Dernière utilisation",
+    "delete": "Supprimer",
+    "delete_confirm": "Supprimer cette passkey ? Vous ne pourrez plus vous connecter avec.",
+    "not_supported": "Ce navigateur ne prend pas en charge les passkeys."
   }
 }

@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Openbeehive", "tagline": "Beekeeping records" },
+  "app": {
+    "name": "Openbeehive",
+    "tagline": "Beekeeping records"
+  },
   "nav": {
     "features": "Features",
     "why": "Why",
@@ -15,7 +18,9 @@
     "scan": "Scan",
     "settings": "Settings"
   },
-  "qr": { "print": "Print" },
+  "qr": {
+    "print": "Print"
+  },
   "scan": {
     "aim": "Aim at the hive's QR code",
     "starting": "Starting camera…",
@@ -64,9 +69,12 @@
     "continue_with": "Continue with {provider}",
     "err_generic": "Something went wrong. Please try again.",
     "invite_only_banner": "This instance is invite-only. Registration is disabled — sign in with an existing account or use your invite link.",
-    "invited_banner": "You've been invited. Create your account below — or sign in if you already have one."
+    "invited_banner": "You've been invited. Create your account below — or sign in if you already have one.",
+    "passkey_signin": "Sign in with a passkey"
   },
-  "demo": { "banner": "You're exploring the Openbeehive demo — data resets every hour." },
+  "demo": {
+    "banner": "You're exploring the Openbeehive demo — data resets every hour."
+  },
   "tenant": {
     "title": "Tenants",
     "help": "Switch between your apiary collections, or create a new one (e.g. a club).",
@@ -225,11 +233,22 @@
     "edit": "Edit task"
   },
   "hivetype": {
-    "0": "Unspecified", "1": "Zander", "2": "Dadant", "3": "Deutsch Normal",
-    "4": "Langstroth", "5": "Warré", "6": "Top-bar", "99": "Other"
+    "0": "Unspecified",
+    "1": "Zander",
+    "2": "Dadant",
+    "3": "Deutsch Normal",
+    "4": "Langstroth",
+    "5": "Warré",
+    "6": "Top-bar",
+    "99": "Other"
   },
   "hivestatus": {
-    "0": "Unspecified", "1": "Active", "2": "Nucleus", "3": "Queenless", "4": "Lost", "5": "Dissolved"
+    "0": "Unspecified",
+    "1": "Active",
+    "2": "Nucleus",
+    "3": "Queenless",
+    "4": "Lost",
+    "5": "Dissolved"
   },
   "insp": {
     "record": "Record visit",
@@ -306,11 +325,50 @@
     "reason_ph": "e.g. varroa",
     "withdrawal": "Withdrawal until"
   },
-  "temperament": { "0": "—", "1": "Very gentle", "2": "Gentle", "3": "Normal", "4": "Nervous", "5": "Aggressive" },
-  "storeslvl": { "0": "—", "1": "Good", "2": "Medium", "3": "Low", "4": "None" },
-  "calmlvl": { "0": "—", "1": "Runs off comb", "2": "Restless", "3": "Calm", "4": "Very calm" },
+  "temperament": {
+    "0": "—",
+    "1": "Very gentle",
+    "2": "Gentle",
+    "3": "Normal",
+    "4": "Nervous",
+    "5": "Aggressive"
+  },
+  "storeslvl": {
+    "0": "—",
+    "1": "Good",
+    "2": "Medium",
+    "3": "Low",
+    "4": "None"
+  },
+  "calmlvl": {
+    "0": "—",
+    "1": "Runs off comb",
+    "2": "Restless",
+    "3": "Calm",
+    "4": "Very calm"
+  },
   "common": {
-    "new": "New", "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
-    "kg": "kg", "back": "Back", "confirm_delete": "Delete this? This cannot be undone."
+    "new": "New",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "kg": "kg",
+    "back": "Back",
+    "confirm_delete": "Delete this? This cannot be undone."
+  },
+  "pk": {
+    "title": "Passkeys",
+    "help": "Sign in without a password using Face ID, fingerprint or a security key. A passkey is bound to this account and stored on your device.",
+    "added": "Passkey added.",
+    "add": "Add passkey",
+    "name_ph": "Name this passkey (e.g. MacBook)",
+    "none": "No passkeys yet.",
+    "unnamed": "Unnamed passkey",
+    "created": "Added",
+    "last_used": "Last used",
+    "delete": "Remove",
+    "delete_confirm": "Remove this passkey? You can no longer sign in with it.",
+    "not_supported": "This browser does not support passkeys."
   }
 }
