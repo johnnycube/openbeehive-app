@@ -27,8 +27,10 @@ func newFS(cfg *config.Config) (Store, error) {
 }
 
 func (f *fsStore) path(key string) string {
-	// key may contain "/" -> subfolders
-	return filepath.Join(f.base, filepath.FromSlash(key))
+	// key may contain "/" -> subfolders. Keys are client-supplied (synced
+	// photo_keys), so root-anchor + Clean before joining: "../" can then never
+	// escape the base directory.
+	return filepath.Join(f.base, filepath.Clean(string(filepath.Separator)+filepath.FromSlash(key)))
 }
 
 func (f *fsStore) Put(ctx context.Context, key, ct string, r io.Reader, size int64) error {
