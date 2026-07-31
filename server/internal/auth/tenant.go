@@ -179,8 +179,19 @@ func (t *TenantAPI) invite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	link := t.inviteLink(inv.Token)
-	log.Printf("tenant: invite for %s to tenant %s: %s", email, req.OrgID, link)
-	// (Email delivery reuses the SMTP config when set; logged otherwise.)
+	// Email the invitee; when SMTP is unset (or fails) log the link instead so
+	// it stays recoverable — the UI shows it to the inviting admin either way.
+	orgName := req.OrgID
+	if org, err := t.orgs.Get(r.Context(), req.OrgID); err == nil {
+		orgName = org.Name
+	}
+	go func() {
+		body := fmt.Sprintf("You have been invited to join %q on Openbeehive.\r\n\r\n"+
+			"Open this link to accept the invitation:\r\n%s\r\n", orgName, link)
+		if err := sendMail(t.cfg, email, "You're invited to Openbeehive", body); err != nil {
+			log.Printf("tenant: invite email to %s not sent (%v); link: %s", email, err, link)
+		}
+	}()
 	respondJSON(w, http.StatusOK, map[string]any{"status": "ok", "token": inv.Token, "link": link})
 }
 

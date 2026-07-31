@@ -4,10 +4,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"net/smtp"
 	"strings"
 	"time"
 
@@ -213,19 +213,12 @@ func randomToken() string {
 // sendVerification emails the verification link, or logs it when SMTP is unset.
 func (p *PasswordAuth) sendVerification(email, token string) {
 	link := fmt.Sprintf("%s/auth/verify?token=%s", strings.TrimRight(p.cfg.PublicBaseURL, "/"), token)
-	smtpCfg := p.cfg.Auth.SMTP
-	if smtpCfg.Host == "" {
+	body := fmt.Sprintf("Welcome to Openbeehive!\r\n\r\nConfirm your email to finish signing up:\r\n%s\r\n", link)
+	err := sendMail(p.cfg, email, "Verify your Openbeehive email", body)
+	switch {
+	case errors.Is(err, errSMTPUnset):
 		log.Printf("auth: email verification link for %s: %s", email, link)
-		return
-	}
-	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: Verify your Openbeehive email\r\n\r\n"+
-		"Welcome to Openbeehive!\r\n\r\nConfirm your email to finish signing up:\r\n%s\r\n", smtpCfg.From, email, link)
-	addr := smtpCfg.Host + ":" + smtpCfg.Port
-	var authMech smtp.Auth
-	if smtpCfg.User != "" {
-		authMech = smtp.PlainAuth("", smtpCfg.User, smtpCfg.Pass, smtpCfg.Host)
-	}
-	if err := smtp.SendMail(addr, authMech, smtpCfg.From, []string{email}, []byte(msg)); err != nil {
+	case err != nil:
 		log.Printf("auth: failed to send verification email to %s (%v); link: %s", email, err, link)
 	}
 }
