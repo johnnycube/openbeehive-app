@@ -62,7 +62,10 @@ jobs:
           prev=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
           {
             echo 'body<<NOTES_EOF'
-            git tag -l --format='%(contents)' "$GITHUB_REF_NAME"
+            # subject+body only — %(contents) would embed the tag's SSH signature
+            git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME"
+            echo
+            git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME"
             echo
             echo '## Changes'
             git log --no-merges --format='- %s (%h)' ${prev:+$prev..}$GITHUB_REF_NAME
