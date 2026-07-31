@@ -6,6 +6,7 @@
   import { createHive } from '$lib/local/history';
   import { dataVersion } from '$lib/local/live';
   import { qrSvg, hiveUrl, shortCode } from '$lib/qr';
+  import LocationPicker from '$lib/components/LocationPicker.svelte';
 
   const id = $page.params.id ?? '';
   let apiary = $state<any>(null);
@@ -139,6 +140,7 @@
             📍 {locating ? '…' : $_('apiaries.use_location')}
           </button>
         </div>
+        <LocationPicker bind:lat={eLat} bind:lng={eLng} bind:address={eAddress} />
         <div class="actions">
           <button type="button" class="ghost" onclick={() => (editing = false)}>{$_('common.cancel')}</button>
           <button type="submit" class="primary" disabled={!eName.trim()}>{$_('common.save')}</button>

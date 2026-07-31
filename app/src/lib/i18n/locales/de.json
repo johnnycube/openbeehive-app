@@ -182,7 +182,8 @@
     "lat": "Breitengrad",
     "lng": "Längengrad",
     "use_location": "Mein Standort",
-    "qr_sheet": "QR-Etiketten"
+    "qr_sheet": "QR-Etiketten",
+    "map_hint": "Adresse eingeben oder Pin verschieben — Position und Adresse bleiben synchron."
   },
   "hives": {
     "title": "Beuten",

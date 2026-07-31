@@ -182,7 +182,8 @@
     "lat": "Latitude",
     "lng": "Longitude",
     "use_location": "Utiliser ma position",
-    "qr_sheet": "Étiquettes QR"
+    "qr_sheet": "Étiquettes QR",
+    "map_hint": "Saisissez une adresse ou déplacez le repère — position et adresse restent synchronisées."
   },
   "hives": {
     "title": "Ruches",

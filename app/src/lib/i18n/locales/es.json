@@ -182,7 +182,8 @@
     "lat": "Latitud",
     "lng": "Longitud",
     "use_location": "Usar mi ubicación",
-    "qr_sheet": "Etiquetas QR"
+    "qr_sheet": "Etiquetas QR",
+    "map_hint": "Escribe una dirección o arrastra el pin: posición y dirección se mantienen sincronizadas."
   },
   "hives": {
     "title": "Colmenas",

@@ -182,7 +182,8 @@
     "lat": "Latitude",
     "lng": "Longitude",
     "use_location": "Use my location",
-    "qr_sheet": "QR labels"
+    "qr_sheet": "QR labels",
+    "map_hint": "Type an address or drag the pin — position and address stay in sync."
   },
   "hives": {
     "title": "Hives",

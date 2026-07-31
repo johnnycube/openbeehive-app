@@ -3,6 +3,7 @@
   import { apiaries, hives } from '$lib/local/repo';
   import { dataVersion } from '$lib/local/live';
   import ApiaryMap from '$lib/components/ApiaryMap.svelte';
+  import LocationPicker from '$lib/components/LocationPicker.svelte';
 
   let rows = $state<any[]>([]);
   let counts = $state<Record<string, number>>({});
@@ -11,6 +12,8 @@
   let name = $state('');
   let address = $state('');
   let note = $state('');
+  let lat = $state(0);
+  let lng = $state(0);
 
   async function load() {
     rows = await apiaries.list();
@@ -24,9 +27,11 @@
     if (!name.trim()) return;
     await apiaries.create({
       organization_id: localStorage.getItem('obh.orgId') ?? 'local',
-      name: name.trim(), address: address.trim(), note: note.trim()
+      name: name.trim(), address: address.trim(), note: note.trim(),
+      lat: lat || 0, lng: lng || 0
     });
     name = address = note = '';
+    lat = lng = 0;
     showForm = false;
     await load();
   }
@@ -45,6 +50,7 @@
       <input bind:value={name} placeholder={$_('apiaries.name_ph')} />
       <input bind:value={address} placeholder={$_('apiaries.address')} />
       <input bind:value={note} placeholder={$_('apiaries.note')} />
+      <LocationPicker bind:lat bind:lng bind:address />
       <div class="actions">
         <button type="button" class="ghost" onclick={() => (showForm = false)}>{$_('common.cancel')}</button>
         <button type="submit" class="primary" disabled={!name.trim()}>{$_('common.save')}</button>
