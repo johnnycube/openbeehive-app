@@ -81,6 +81,16 @@
     if (r.ok) await loadInvites();
   }
 
+  async function deleteTenant() {
+    const name = activeTenant?.name ?? '';
+    if (!confirm($_('tenant.delete_confirm', { values: { name } }))) return;
+    const r = await fetch(`${API}/tenants/delete`, {
+      method: 'POST', credentials: 'include',
+      headers: authHeaders(), body: JSON.stringify({ org_id: activeOrg })
+    });
+    if (r.ok) applyTenant(await r.json().catch(() => ({})));
+  }
+
   async function logout() {
     try {
       await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include', headers: authHeaders() });
@@ -232,6 +242,11 @@
             {/each}
           </ul>
         {/if}
+        <div class="danger-zone">
+          <h3 class="sub">{$_('tenant.danger')}</h3>
+          <p class="help">{$_('tenant.delete_help')}</p>
+          <button class="data-btn danger" onclick={deleteTenant}>{$_('tenant.delete')}</button>
+        </div>
       {/if}
     </section>
   {/if}
@@ -344,6 +359,9 @@
   .invites .idate { font-size: .8rem; color: var(--ink-soft); }
   .invites .iactions { display: flex; gap: 8px; }
   .data-btn.danger:hover:not(:disabled) { border-color: #b5402f; background: rgba(181,64,47,.08); color: #b5402f; }
+  .danger-zone { margin-top: 20px; padding: 14px; border: 1px solid rgba(181,64,47,.4); border-radius: 12px; }
+  .danger-zone .sub { margin: 0 0 4px; color: #b5402f; }
+  .danger-zone .data-btn { border-color: rgba(181,64,47,.4); color: #b5402f; }
   .logout { margin-top: 14px; }
   .logout:hover { border-color: #b5402f; color: #b5402f; }
 

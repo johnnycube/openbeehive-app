@@ -66,7 +66,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("blob: %v", err)
 	}
-	_ = blobs // pass to the inspection service
 
 	// --- Auth (session + OIDC multi-provider + WebAuthn) ---
 	sessions := auth.NewSessionManager(cfg.Auth.SessionSecret, cfg.Auth.SessionTTL)
@@ -81,7 +80,7 @@ func main() {
 
 	// Multi-tenant endpoints (me / switch / create / invite / accept).
 	if authEnabled {
-		auth.NewTenantAPI(sessions, store.Users(), store.Orgs(), store.Members(), store.Invites(), prov, cfg).Routes(mux)
+		auth.NewTenantAPI(sessions, store.Users(), store.Orgs(), store.Members(), store.Invites(), prov, cfg, blobs).Routes(mux)
 	}
 
 	// Email + password onboarding (first account = admin; verification optional).

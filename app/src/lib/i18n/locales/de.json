@@ -82,6 +82,10 @@
     "copied": "Kopiert",
     "open_invites": "Offene Einladungen",
     "invite_revoke": "Zurückziehen",
+    "danger": "Gefahrenzone",
+    "delete": "Mandanten löschen",
+    "delete_help": "Löscht diesen Mandanten mit allen Ständen, Beuten und Aufzeichnungen – für alle Mitglieder. Das kann nicht rückgängig gemacht werden.",
+    "delete_confirm": "Mandant „{name}“ und alle Daten endgültig löschen? Das betrifft alle Mitglieder und kann nicht rückgängig gemacht werden.",
     "role_owner": "Admin",
     "role_member": "Mitglied"
   },

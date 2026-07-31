@@ -82,6 +82,10 @@
     "copied": "Copiato",
     "open_invites": "Inviti aperti",
     "invite_revoke": "Revoca",
+    "danger": "Zona di pericolo",
+    "delete": "Elimina lo spazio",
+    "delete_help": "Elimina questo spazio con tutti i suoi apiari, arnie e registrazioni — per tutti i membri. Non può essere annullato.",
+    "delete_confirm": "Eliminare lo spazio «{name}» e tutti i suoi dati in modo permanente? Riguarda tutti i membri e non può essere annullato.",
     "role_owner": "Admin",
     "role_member": "Membro"
   },

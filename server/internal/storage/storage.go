@@ -109,6 +109,13 @@ type UserRepo interface {
 type OrgRepo interface {
 	Create(ctx context.Context, o *Organization) error
 	Get(ctx context.Context, id string) (*Organization, error)
+	// Delete removes the tenant and every row scoped to it (memberships,
+	// invites, apiaries, hives and all records) in one transaction.
+	Delete(ctx context.Context, id string) error
+	// PhotoKeysByOrg returns every blob key the tenant's inspections have ever
+	// referenced — including OR-Set-removed ones, whose blobs also linger.
+	// Used to purge the blob store when the tenant is deleted.
+	PhotoKeysByOrg(ctx context.Context, id string) ([]string, error)
 }
 
 type MemberRepo interface {

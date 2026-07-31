@@ -82,6 +82,10 @@
     "copied": "Copiado",
     "open_invites": "Invitaciones pendientes",
     "invite_revoke": "Revocar",
+    "danger": "Zona de peligro",
+    "delete": "Eliminar el espacio",
+    "delete_help": "Elimina este espacio con todos sus apiarios, colmenas y registros — para todos los miembros. No se puede deshacer.",
+    "delete_confirm": "¿Eliminar el espacio «{name}» y todos sus datos de forma permanente? Afecta a todos los miembros y no se puede deshacer.",
     "role_owner": "Admin",
     "role_member": "Miembro"
   },

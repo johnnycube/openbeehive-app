@@ -82,6 +82,10 @@
     "copied": "Copied",
     "open_invites": "Open invites",
     "invite_revoke": "Revoke",
+    "danger": "Danger zone",
+    "delete": "Delete tenant",
+    "delete_help": "Deletes this tenant with all its apiaries, hives and records — for every member. This cannot be undone.",
+    "delete_confirm": "Delete tenant “{name}” and all its data permanently? This affects every member and cannot be undone.",
     "role_owner": "Admin",
     "role_member": "Member"
   },

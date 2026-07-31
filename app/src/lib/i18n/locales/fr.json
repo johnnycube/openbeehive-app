@@ -82,6 +82,10 @@
     "copied": "Copié",
     "open_invites": "Invitations en attente",
     "invite_revoke": "Révoquer",
+    "danger": "Zone de danger",
+    "delete": "Supprimer l'espace",
+    "delete_help": "Supprime cet espace avec tous ses ruchers, ruches et enregistrements — pour tous les membres. Cette action est irréversible.",
+    "delete_confirm": "Supprimer l'espace « {name} » et toutes ses données définitivement ? Cela concerne tous les membres et est irréversible.",
     "role_owner": "Admin",
     "role_member": "Membre"
   },

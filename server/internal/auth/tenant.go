@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/johnnycube/openbeehive-app/server/internal/config"
 	"github.com/johnnycube/openbeehive-app/server/internal/storage"
+	"github.com/johnnycube/openbeehive-app/server/internal/storage/blob"
 )
 
 // TenantAPI exposes multi-tenant onboarding: who am I, which tenants can I use,
@@ -24,10 +26,11 @@ type TenantAPI struct {
 	invites  storage.InviteRepo
 	prov     *Provisioner
 	cfg      *config.Config
+	blobs    blob.Store // for purging photo blobs on tenant deletion
 }
 
-func NewTenantAPI(s *SessionManager, u storage.UserRepo, o storage.OrgRepo, m storage.MemberRepo, i storage.InviteRepo, prov *Provisioner, cfg *config.Config) *TenantAPI {
-	return &TenantAPI{sessions: s, users: u, orgs: o, members: m, invites: i, prov: prov, cfg: cfg}
+func NewTenantAPI(s *SessionManager, u storage.UserRepo, o storage.OrgRepo, m storage.MemberRepo, i storage.InviteRepo, prov *Provisioner, cfg *config.Config, blobs blob.Store) *TenantAPI {
+	return &TenantAPI{sessions: s, users: u, orgs: o, members: m, invites: i, prov: prov, cfg: cfg, blobs: blobs}
 }
 
 func (t *TenantAPI) Routes(mux *http.ServeMux) {
@@ -38,6 +41,7 @@ func (t *TenantAPI) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/tenants/invite", t.invite)
 	mux.HandleFunc("/tenants/invites", t.listInvites)
 	mux.HandleFunc("/tenants/invite/revoke", t.revokeInvite)
+	mux.HandleFunc("/tenants/delete", t.deleteTenant)
 	mux.HandleFunc("/auth/accept-invite", t.accept)
 }
 
@@ -274,6 +278,63 @@ func (t *TenantAPI) revokeInvite(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	respondJSON(w, http.StatusNotFound, map[string]any{"error": "invite not found"})
+}
+
+type deleteTenantReq struct {
+	OrgID string `json:"org_id"`
+}
+
+// deleteTenant permanently removes a tenant and everything in it — for every
+// member, not just the caller. Owner-only. The caller's session is moved to
+// another tenant they belong to (a fresh personal one if none is left).
+func (t *TenantAPI) deleteTenant(w http.ResponseWriter, r *http.Request) {
+	var req deleteTenantReq
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	id, orgID, ok := t.requireOwner(w, r, req.OrgID)
+	if !ok {
+		return
+	}
+	if id.Role == "demo" {
+		respondJSON(w, http.StatusForbidden, map[string]any{"error": ErrDemoReadOnly.Error()})
+		return
+	}
+	// Collect blob keys BEFORE the rows go away; purge after the delete
+	// commits so a failed delete never loses photos.
+	photoKeys, err := t.orgs.PhotoKeysByOrg(r.Context(), orgID)
+	if err != nil {
+		log.Printf("tenant: %s: listing photo keys failed (%v); blobs will be orphaned", orgID, err)
+	}
+	if err := t.orgs.Delete(r.Context(), orgID); err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		return
+	}
+	log.Printf("tenant: %s deleted by %s", orgID, id.UserID)
+	if t.blobs != nil && len(photoKeys) > 0 {
+		// Best-effort in the background: the rows are already gone, so a blob
+		// failure only leaves an orphan (logged), never a broken tenant.
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+			failed := 0
+			for _, key := range photoKeys {
+				if err := t.blobs.Delete(ctx, key); err != nil {
+					failed++
+					log.Printf("tenant: %s: blob %s not deleted: %v", orgID, key, err)
+				}
+			}
+			log.Printf("tenant: %s: purged %d/%d photo blobs", orgID, len(photoKeys)-failed, len(photoKeys))
+		}()
+	}
+	next := t.prov.ActiveOrg(r.Context(), id.UserID)
+	if next == "" {
+		// The caller deleted their last tenant — recreate a personal one so
+		// the account never ends up orphaned.
+		if u, err := t.users.GetByID(r.Context(), id.UserID); err == nil {
+			next = t.prov.ResolveActiveOrg(r.Context(), u)
+		}
+	}
+	tok := t.reissue(w, id, next)
+	respondJSON(w, http.StatusOK, map[string]any{"status": "ok", "active_org": next, "token": tok})
 }
 
 type acceptReq struct {
