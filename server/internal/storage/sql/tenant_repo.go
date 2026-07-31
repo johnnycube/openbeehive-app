@@ -78,6 +78,13 @@ func (r *inviteRepo) GetByToken(ctx context.Context, token string) (*storage.Inv
 	return &i, err
 }
 
+func (r *inviteRepo) ListByOrg(ctx context.Context, orgID string) ([]storage.Invite, error) {
+	out := []storage.Invite{}
+	err := r.s.db.SelectContext(ctx, &out, r.s.db.Rebind(
+		`SELECT id, organization_id, email, role, token, created_at FROM invite WHERE organization_id = ? ORDER BY created_at DESC`), orgID)
+	return out, err
+}
+
 func (r *inviteRepo) Delete(ctx context.Context, id string) error {
 	return r.s.exec(ctx, `DELETE FROM invite WHERE id = ?`, id)
 }

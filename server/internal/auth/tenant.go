@@ -36,6 +36,8 @@ func (t *TenantAPI) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/auth/switch", t.switchTenant)
 	mux.HandleFunc("/tenants/create", t.create)
 	mux.HandleFunc("/tenants/invite", t.invite)
+	mux.HandleFunc("/tenants/invites", t.listInvites)
+	mux.HandleFunc("/tenants/invite/revoke", t.revokeInvite)
 	mux.HandleFunc("/auth/accept-invite", t.accept)
 }
 
@@ -176,10 +178,91 @@ func (t *TenantAPI) invite(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		return
 	}
-	link := fmt.Sprintf("%s/login?invite=%s", strings.TrimRight(t.cfg.PublicBaseURL, "/"), inv.Token)
+	link := t.inviteLink(inv.Token)
 	log.Printf("tenant: invite for %s to tenant %s: %s", email, req.OrgID, link)
 	// (Email delivery reuses the SMTP config when set; logged otherwise.)
 	respondJSON(w, http.StatusOK, map[string]any{"status": "ok", "token": inv.Token, "link": link})
+}
+
+func (t *TenantAPI) inviteLink(token string) string {
+	return fmt.Sprintf("%s/login?invite=%s", strings.TrimRight(t.cfg.PublicBaseURL, "/"), token)
+}
+
+// requireOwner resolves the caller's identity and checks they are the admin
+// (owner) of the given tenant; org defaults to the active one.
+func (t *TenantAPI) requireOwner(w http.ResponseWriter, r *http.Request, orgID string) (Identity, string, bool) {
+	id, ok := t.sessions.IdentityFromRequest(r)
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]any{"error": "not signed in"})
+		return Identity{}, "", false
+	}
+	if orgID == "" {
+		orgID = id.OrgID
+	}
+	m, err := t.members.Get(r.Context(), orgID, id.UserID)
+	if err != nil || m.Role != "owner" {
+		respondJSON(w, http.StatusForbidden, map[string]any{"error": "only the tenant admin can manage invites"})
+		return Identity{}, "", false
+	}
+	return id, orgID, true
+}
+
+// listInvites returns the tenant's open (not yet accepted) invites, including
+// the signup link so the admin can re-copy it — accepting deletes the row, so
+// everything listed here is still pending.
+func (t *TenantAPI) listInvites(w http.ResponseWriter, r *http.Request) {
+	_, orgID, ok := t.requireOwner(w, r, r.URL.Query().Get("org_id"))
+	if !ok {
+		return
+	}
+	invites, err := t.invites.ListByOrg(r.Context(), orgID)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		return
+	}
+	list := make([]map[string]any, 0, len(invites))
+	for _, inv := range invites {
+		list = append(list, map[string]any{
+			"id":         inv.ID,
+			"email":      inv.Email,
+			"role":       inv.Role,
+			"created_at": inv.CreatedAt,
+			"link":       t.inviteLink(inv.Token),
+		})
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"invites": list})
+}
+
+type revokeReq struct {
+	ID    string `json:"id"`
+	OrgID string `json:"org_id"`
+}
+
+func (t *TenantAPI) revokeInvite(w http.ResponseWriter, r *http.Request) {
+	var req revokeReq
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	_, orgID, ok := t.requireOwner(w, r, req.OrgID)
+	if !ok {
+		return
+	}
+	// Look the invite up via the tenant's own list so an admin of tenant A
+	// cannot delete tenant B's invites by guessing ids.
+	invites, err := t.invites.ListByOrg(r.Context(), orgID)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		return
+	}
+	for _, inv := range invites {
+		if inv.ID == req.ID {
+			if err := t.invites.Delete(r.Context(), inv.ID); err != nil {
+				respondJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+				return
+			}
+			respondJSON(w, http.StatusOK, map[string]any{"status": "ok"})
+			return
+		}
+	}
+	respondJSON(w, http.StatusNotFound, map[string]any{"error": "invite not found"})
 }
 
 type acceptReq struct {

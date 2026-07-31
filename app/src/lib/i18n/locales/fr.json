@@ -78,6 +78,10 @@
     "invite_ph": "nom@exemple.com",
     "invite_send": "Envoyer l'invitation",
     "invite_sent": "Lien d'invitation créé — partagez-le.",
+    "copy_link": "Copier le lien",
+    "copied": "Copié",
+    "open_invites": "Invitations en attente",
+    "invite_revoke": "Révoquer",
     "role_owner": "Admin",
     "role_member": "Membre"
   },

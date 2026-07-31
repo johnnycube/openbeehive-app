@@ -120,6 +120,7 @@ type MemberRepo interface {
 type InviteRepo interface {
 	Create(ctx context.Context, i *Invite) error
 	GetByToken(ctx context.Context, token string) (*Invite, error)
+	ListByOrg(ctx context.Context, orgID string) ([]Invite, error)
 	Delete(ctx context.Context, id string) error
 }
 

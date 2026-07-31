@@ -27,6 +27,10 @@
   let newTenant = $state('');
   let inviteEmail = $state('');
   let tenantMsg = $state('');
+  type OpenInvite = { id: string; email: string; role: string; created_at: string; link: string };
+  let openInvites = $state<OpenInvite[]>([]);
+  let inviteLink = $state('');
+  let copied = $state('');
   let signedIn = $state(false);
   const activeTenant = $derived(tenants.find((t) => t.id === activeOrg));
   const isOwner = $derived(activeTenant?.role === 'owner');
@@ -46,9 +50,36 @@
       const j = await r.json();
       tenants = j.tenants ?? [];
       activeOrg = j.active_org ?? '';
+      await loadInvites();
     } catch { /* single-user mode: no tenants */ }
   }
   onMount(loadTenants);
+
+  async function loadInvites() {
+    // Owner-only endpoint; non-owners get a 403 and simply see no list.
+    try {
+      const r = await fetch(`${API}/tenants/invites?org_id=${encodeURIComponent(activeOrg)}`, {
+        credentials: 'include', headers: authHeaders()
+      });
+      openInvites = r.ok ? ((await r.json()).invites ?? []) : [];
+    } catch { openInvites = []; }
+  }
+
+  async function copyLink(link: string) {
+    try {
+      await navigator.clipboard.writeText(link);
+      copied = link;
+      setTimeout(() => { if (copied === link) copied = ''; }, 2000);
+    } catch { /* clipboard unavailable (http, permissions) — link stays selectable */ }
+  }
+
+  async function revokeInvite(id: string) {
+    const r = await fetch(`${API}/tenants/invite/revoke`, {
+      method: 'POST', credentials: 'include',
+      headers: authHeaders(), body: JSON.stringify({ id, org_id: activeOrg })
+    });
+    if (r.ok) await loadInvites();
+  }
 
   async function logout() {
     try {
@@ -92,7 +123,13 @@
       method: 'POST', credentials: 'include',
       headers: authHeaders(), body: JSON.stringify({ email: email2, org_id: activeOrg })
     });
-    if (r.ok) { tenantMsg = $_('tenant.invite_sent'); inviteEmail = ''; }
+    if (r.ok) {
+      const j = await r.json().catch(() => ({}));
+      inviteLink = j.link ?? '';
+      tenantMsg = $_('tenant.invite_sent');
+      inviteEmail = '';
+      await loadInvites();
+    }
   }
 
   // --- Data export / import ---
@@ -167,6 +204,34 @@
           <button class="data-btn" onclick={sendInvite}>{$_('tenant.invite_send')}</button>
         </div>
         {#if tenantMsg}<p class="import-msg">{tenantMsg}</p>{/if}
+        {#if inviteLink}
+          <div class="invite-link">
+            <code>{inviteLink}</code>
+            <button class="data-btn" onclick={() => copyLink(inviteLink)}>
+              {copied === inviteLink ? '✓ ' + $_('tenant.copied') : $_('tenant.copy_link')}
+            </button>
+          </div>
+        {/if}
+        {#if openInvites.length}
+          <h3 class="sub">{$_('tenant.open_invites')}</h3>
+          <ul class="invites">
+            {#each openInvites as i (i.id)}
+              <li>
+                <div class="imeta">
+                  <strong>{i.email}</strong>
+                  <span class="trole">{i.role === 'owner' ? $_('tenant.role_owner') : $_('tenant.role_member')}</span>
+                  <span class="idate">{new Date(i.created_at).toLocaleDateString($locale ?? undefined)}</span>
+                </div>
+                <div class="iactions">
+                  <button class="data-btn" onclick={() => copyLink(i.link)}>
+                    {copied === i.link ? '✓ ' + $_('tenant.copied') : $_('tenant.copy_link')}
+                  </button>
+                  <button class="data-btn danger" onclick={() => revokeInvite(i.id)}>{$_('tenant.invite_revoke')}</button>
+                </div>
+              </li>
+            {/each}
+          </ul>
+        {/if}
       {/if}
     </section>
   {/if}
@@ -267,6 +332,18 @@
   .trow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
   .trow input { flex: 1; min-width: 150px; padding: 11px 12px; border: 1px solid var(--line);
     border-radius: 12px; background: #fff; font: inherit; color: var(--ink); }
+  .invite-link { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px;
+    padding: 10px 12px; border: 1px solid var(--honey); border-radius: 12px; background: rgba(199,127,34,.08); }
+  .invite-link code { flex: 1; min-width: 150px; word-break: break-all; font-size: .82rem; }
+  .invites { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .invites li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 11px 14px;
+    border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+  .invites .imeta { flex: 1; min-width: 150px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .invites .trole { font-size: .72rem; font-weight: 700; color: var(--ink-soft); background: var(--cream);
+    border: 1px solid var(--line); border-radius: 7px; padding: 2px 7px; }
+  .invites .idate { font-size: .8rem; color: var(--ink-soft); }
+  .invites .iactions { display: flex; gap: 8px; }
+  .data-btn.danger:hover:not(:disabled) { border-color: #b5402f; background: rgba(181,64,47,.08); color: #b5402f; }
   .logout { margin-top: 14px; }
   .logout:hover { border-color: #b5402f; color: #b5402f; }
 
