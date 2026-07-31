@@ -52,7 +52,25 @@ jobs:
     needs: image
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Full history + tags: the notes step diffs against the previous tag.
+          fetch-depth: 0
+
+      - name: Build release notes from commits
+        id: notes
+        run: |
+          prev=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+          {
+            echo 'body<<NOTES_EOF'
+            git tag -l --format='%(contents)' "$GITHUB_REF_NAME"
+            echo
+            echo '## Changes'
+            git log --no-merges --format='- %s (%h)' ${prev:+$prev..}$GITHUB_REF_NAME
+            echo 'NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create release
         uses: softprops/action-gh-release@v3
         with:
+          body: ${{ steps.notes.outputs.body }}
           generate_release_notes: true
