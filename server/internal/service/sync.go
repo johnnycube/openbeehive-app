@@ -19,22 +19,80 @@ import (
 
 // Column whitelist per entity. cols are merged via per-field LWW,
 // setCols as OR-Set (add-wins). Both stay portable (no UPSERT needed).
+// bools/ints/times drive payload coercion (see coerceFields): clients store
+// rows in SQLite, so their JSON payloads carry 0/1 for booleans, floats for
+// integers and strings (or "") for timestamps — SQLite accepts all of that
+// verbatim, Postgres and MySQL do not.
 type entitySpec struct {
 	table   string
 	cols    []string
 	setCols []string
+	bools   []string
+	ints    []string
+	times   []string
 }
 
 var entityCols = map[string]entitySpec{
-	"apiary":       {"apiary", []string{"id", "organization_id", "name", "address", "lat", "lng", "note", "created_at", "updated_at", "deleted"}, nil},
-	"hive":          {"hive", []string{"id", "organization_id", "apiary_id", "name", "type", "status", "boxes", "colony_origin", "note", "qr_code", "photo", "created_at", "updated_at", "deleted"}, nil},
-	"queen":       {"queen", []string{"id", "organization_id", "hive_id", "year", "marking", "origin", "breeder_number", "introduced_at", "replaced_at", "active", "note", "created_at", "updated_at", "deleted"}, nil},
-	"inspection":     {"inspection", []string{"id", "organization_id", "hive_id", "date", "weather", "queen_seen", "eggs_seen", "temperament", "frames", "stores", "queen_cells", "varroa", "honey_kg", "note", "brood_frames", "calmness", "fed_kg", "frames_added", "frames_removed", "drone_frame_cut", "super_added", "weight_kg", "youngest_larva", "covered_larva", "temp_hive", "temp_outside", "humidity_hive", "humidity_outside", "created_at", "deleted"}, []string{"photo_keys"}},
-	"task":        {"task", []string{"id", "organization_id", "title", "hive_id", "apiary_id", "due_at", "done", "priority", "note", "recurrence", "assigned_to", "created_at", "deleted"}, nil},
-	"placement": {"placement", []string{"id", "organization_id", "hive_id", "apiary_id", "start_at", "end_at", "deleted"}, nil},
-	"harvest":          {"harvest", []string{"id", "organization_id", "apiary_id", "hive_id", "queen_id", "date", "variety", "amount_kg", "water_content", "batch_number", "best_before", "note", "deleted"}, nil},
-	"treatment":       {"treatment", []string{"id", "organization_id", "apiary_id", "hive_id", "queen_id", "date", "product", "active_ingredient", "dose", "method", "batch_number", "withdrawal_until", "reason", "note", "deleted"}, nil},
-	"event":       {"event", []string{"id", "organization_id", "scope_id", "type", "date", "apiary_id", "hive_id", "queen_id", "ref_entity", "ref_id", "title", "amount_kg", "detail", "author_id", "deleted"}, nil},
+	"apiary": {
+		table: "apiary",
+		cols:  []string{"id", "organization_id", "name", "address", "lat", "lng", "note", "created_at", "updated_at", "deleted"},
+		bools: []string{"deleted"},
+		times: []string{"created_at", "updated_at"},
+	},
+	"hive": {
+		table: "hive",
+		cols:  []string{"id", "organization_id", "apiary_id", "name", "type", "status", "boxes", "colony_origin", "note", "qr_code", "photo", "created_at", "updated_at", "deleted"},
+		bools: []string{"deleted"},
+		ints:  []string{"type", "status", "boxes"},
+		times: []string{"created_at", "updated_at"},
+	},
+	"queen": {
+		table: "queen",
+		cols:  []string{"id", "organization_id", "hive_id", "year", "marking", "origin", "breeder_number", "introduced_at", "replaced_at", "active", "note", "created_at", "updated_at", "deleted"},
+		bools: []string{"active", "deleted"},
+		ints:  []string{"year", "marking"},
+		times: []string{"introduced_at", "replaced_at", "created_at", "updated_at"},
+	},
+	"inspection": {
+		table:   "inspection",
+		cols:    []string{"id", "organization_id", "hive_id", "date", "weather", "queen_seen", "eggs_seen", "temperament", "frames", "stores", "queen_cells", "varroa", "honey_kg", "note", "brood_frames", "calmness", "fed_kg", "frames_added", "frames_removed", "drone_frame_cut", "super_added", "weight_kg", "youngest_larva", "covered_larva", "temp_hive", "temp_outside", "humidity_hive", "humidity_outside", "created_at", "deleted"},
+		setCols: []string{"photo_keys"},
+		bools:   []string{"queen_seen", "eggs_seen", "drone_frame_cut", "super_added", "covered_larva", "deleted"},
+		ints:    []string{"temperament", "frames", "stores", "queen_cells", "brood_frames", "calmness", "frames_added", "frames_removed", "youngest_larva"},
+		times:   []string{"date", "created_at"},
+	},
+	"task": {
+		table: "task",
+		cols:  []string{"id", "organization_id", "title", "hive_id", "apiary_id", "due_at", "done", "priority", "note", "recurrence", "assigned_to", "created_at", "deleted"},
+		bools: []string{"done", "deleted"},
+		ints:  []string{"priority"},
+		times: []string{"due_at", "created_at"},
+	},
+	"placement": {
+		table: "placement",
+		cols:  []string{"id", "organization_id", "hive_id", "apiary_id", "start_at", "end_at", "deleted"},
+		bools: []string{"deleted"},
+		times: []string{"start_at", "end_at"},
+	},
+	"harvest": {
+		table: "harvest",
+		cols:  []string{"id", "organization_id", "apiary_id", "hive_id", "queen_id", "date", "variety", "amount_kg", "water_content", "batch_number", "best_before", "note", "deleted"},
+		bools: []string{"deleted"},
+		times: []string{"date", "best_before"},
+	},
+	"treatment": {
+		table: "treatment",
+		cols:  []string{"id", "organization_id", "apiary_id", "hive_id", "queen_id", "date", "product", "active_ingredient", "dose", "method", "batch_number", "withdrawal_until", "reason", "note", "deleted"},
+		bools: []string{"deleted"},
+		times: []string{"date", "withdrawal_until"},
+	},
+	"event": {
+		table: "event",
+		cols:  []string{"id", "organization_id", "scope_id", "type", "date", "apiary_id", "hive_id", "queen_id", "ref_entity", "ref_id", "title", "amount_kg", "detail", "author_id", "deleted"},
+		bools: []string{"deleted"},
+		ints:  []string{"type"},
+		times: []string{"date"},
+	},
 }
 
 func isSetCol(spec entitySpec, col string) bool {
@@ -80,6 +138,45 @@ func toStrings(v any) []string {
 		}
 	}
 	return out
+}
+
+// coerceFields normalizes JSON payload values to what the target dialect's
+// column types accept. SQLite stores whatever it is given, but Postgres
+// rejects integers in BOOLEAN columns and MySQL cannot parse RFC3339 into
+// DATETIME, so: 0/1 -> bool, integral floats -> int64, "" -> NULL for
+// timestamps, and (outside SQLite) RFC3339 strings -> time.Time.
+func coerceFields(spec entitySpec, fields map[string]any, driver string) {
+	for _, c := range spec.bools {
+		switch v := fields[c].(type) {
+		case float64:
+			fields[c] = v != 0
+		case string:
+			fields[c] = v == "1" || v == "true"
+		}
+	}
+	for _, c := range spec.ints {
+		if v, ok := fields[c].(float64); ok {
+			fields[c] = int64(v)
+		}
+	}
+	for _, c := range spec.times {
+		v, ok := fields[c].(string)
+		if !ok {
+			continue
+		}
+		if v == "" {
+			fields[c] = nil // nullable timestamp: "" means "not set"
+			continue
+		}
+		if driver == "sqlite" {
+			continue // stored verbatim, as the clients themselves do
+		}
+		if t, err := time.Parse(time.RFC3339, v); err == nil {
+			fields[c] = t
+		}
+		// other layouts (e.g. date-only) stay strings; Postgres and MySQL
+		// parse those natively.
+	}
 }
 
 type SyncService struct {
@@ -266,6 +363,7 @@ func applyChange(ctx context.Context, tx *sqlx.Tx, spec entitySpec, ch *wv1.Chan
 	} else if err := json.Unmarshal([]byte(ch.PayloadJson), &fields); err != nil {
 		return err
 	}
+	coerceFields(spec, fields, tx.DriverName())
 	if v, ok := fields["organization_id"]; ok {
 		if s := asString(v); s == "" {
 			fields["organization_id"] = orgID // unset -> stamp the caller's tenant

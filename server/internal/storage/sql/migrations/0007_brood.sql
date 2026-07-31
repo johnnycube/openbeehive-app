@@ -4,4 +4,4 @@
 -- (sealed) brood was present.
 
 ALTER TABLE inspection ADD COLUMN youngest_larva INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE inspection ADD COLUMN covered_larva  BOOLEAN NOT NULL DEFAULT 0;
+ALTER TABLE inspection ADD COLUMN covered_larva  BOOLEAN NOT NULL DEFAULT FALSE;

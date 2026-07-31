@@ -21,7 +21,7 @@ func (r *apiaryRepo) Get(ctx context.Context, orgID, id string) (*storage.Apiary
 	var m storage.Apiary
 	err := r.s.db.GetContext(ctx, &m, r.s.db.Rebind(`
 		SELECT id, organization_id, name, address, lat, lng, note, created_at, updated_at
-		FROM apiary WHERE organization_id = ? AND id = ? AND deleted = 0`), orgID, id)
+		FROM apiary WHERE organization_id = ? AND id = ? AND deleted = FALSE`), orgID, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, storage.ErrNotFound
 	}
@@ -35,7 +35,7 @@ func (r *apiaryRepo) List(ctx context.Context, orgID string, limit, offset int) 
 	var out []storage.Apiary
 	err := r.s.db.SelectContext(ctx, &out, r.s.db.Rebind(`
 		SELECT id, organization_id, name, address, lat, lng, note, created_at, updated_at
-		FROM apiary WHERE organization_id = ? AND deleted = 0
+		FROM apiary WHERE organization_id = ? AND deleted = FALSE
 		ORDER BY name ASC LIMIT ? OFFSET ?`), orgID, limit, offset)
 	if err != nil {
 		return nil, 0, err
@@ -79,7 +79,7 @@ func (r *hiveRepo) Get(ctx context.Context, orgID, id string) (*storage.Hive, er
 	var m storage.Hive
 	err := r.s.db.GetContext(ctx, &m, r.s.db.Rebind(
 		`SELECT id, organization_id, apiary_id, name, type, status, boxes, colony_origin, note, qr_code, created_at, updated_at
-		 FROM hive WHERE organization_id = ? AND id = ? AND deleted = 0`), orgID, id)
+		 FROM hive WHERE organization_id = ? AND id = ? AND deleted = FALSE`), orgID, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, storage.ErrNotFound
 	}
@@ -91,7 +91,7 @@ func (r *hiveRepo) List(ctx context.Context, orgID, apiaryID string, limit, offs
 		limit = 50
 	}
 	q := `SELECT id, organization_id, apiary_id, name, type, status, boxes, colony_origin, note, qr_code, created_at, updated_at
-	      FROM hive WHERE organization_id = ? AND deleted = 0`
+	      FROM hive WHERE organization_id = ? AND deleted = FALSE`
 	args := []any{orgID}
 	if apiaryID != "" {
 		q += ` AND apiary_id = ?`

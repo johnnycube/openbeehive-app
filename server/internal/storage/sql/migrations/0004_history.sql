@@ -9,13 +9,13 @@ ALTER TABLE queen ADD COLUMN replaced_at TIMESTAMP;
 -- Open interval = current apiary (end_at IS NULL).
 CREATE TABLE IF NOT EXISTS placement (
   id              TEXT PRIMARY KEY,
-  organization_id TEXT NOT NULL,
-  hive_id        TEXT NOT NULL,
-  apiary_id     TEXT NOT NULL,
+  organization_id VARCHAR(64) NOT NULL,
+  hive_id        VARCHAR(64) NOT NULL,
+  apiary_id     VARCHAR(64) NOT NULL,
   start_at             TIMESTAMP NOT NULL,
   end_at             TIMESTAMP,
   field_hlc       TEXT NOT NULL DEFAULT '{}',
-  deleted         BOOLEAN NOT NULL DEFAULT 0
+  deleted         BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE INDEX IF NOT EXISTS idx_bs_hive ON placement (hive_id, start_at);
 
@@ -23,20 +23,20 @@ CREATE INDEX IF NOT EXISTS idx_bs_hive ON placement (hive_id, start_at);
 ALTER TABLE harvest ADD COLUMN hive_id TEXT;
 ALTER TABLE harvest ADD COLUMN queen_id TEXT;
 ALTER TABLE harvest ADD COLUMN field_hlc TEXT NOT NULL DEFAULT '{}';
-ALTER TABLE harvest ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT 0;
+ALTER TABLE harvest ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Universal event log = immutable history AND fact table.
 -- Each row carries the dimension keys (apiary/hive/queen/time)
 -- frozen at event time -> statistics without joins, permanently correct.
 CREATE TABLE IF NOT EXISTS event (
   id              TEXT PRIMARY KEY,
-  organization_id TEXT NOT NULL,
-  scope_id        TEXT NOT NULL,          -- Apiary-id (sharing/Pull)
+  organization_id VARCHAR(64) NOT NULL,
+  scope_id        VARCHAR(64) NOT NULL,   -- Apiary-id (sharing/Pull)
   type             INTEGER NOT NULL,       -- see EventType
   date           TIMESTAMP NOT NULL,
-  apiary_id     TEXT,                   -- frozen
-  hive_id        TEXT,                   -- frozen
-  queen_id     TEXT,                   -- frozen (damals regierend)
+  apiary_id     VARCHAR(64),            -- frozen
+  hive_id        VARCHAR(64),            -- frozen
+  queen_id     VARCHAR(64),            -- frozen (reigning at the time)
   ref_entity      TEXT,                   -- Detaildatensatz, z.B. "harvest"
   ref_id          TEXT,
   title           TEXT NOT NULL DEFAULT '',
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS event (
   detail          TEXT NOT NULL DEFAULT '', -- JSON
   author_id       TEXT NOT NULL DEFAULT '',
   field_hlc       TEXT NOT NULL DEFAULT '{}',
-  deleted         BOOLEAN NOT NULL DEFAULT 0
+  deleted         BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE INDEX IF NOT EXISTS idx_event_scope ON event (scope_id, date);
 CREATE INDEX IF NOT EXISTS idx_event_hive ON event (hive_id, date);

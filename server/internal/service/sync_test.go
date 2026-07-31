@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -15,18 +16,25 @@ import (
 	wsync "github.com/johnnycube/openbeehive-app/server/internal/sync"
 )
 
-// newSyncFixture opens a fresh SQLite store with two tenants, one apiary each,
-// and one hive owned by tenant A.
+// newSyncFixture opens a fresh store with two tenants, one apiary each, and
+// one hive owned by tenant A. Defaults to SQLite in a temp dir; set
+// BEEHIVE_TEST_DATABASE_DRIVER + BEEHIVE_TEST_DATABASE_DSN to run the whole
+// suite against a live Postgres or MySQL instead (the schema is wiped!).
 func newSyncFixture(t *testing.T) *SyncService {
 	t.Helper()
 	cfg := &config.Config{Profile: "selfhost"}
 	cfg.DB.Driver = config.DriverSQLite
 	cfg.DB.DSN = "file:" + filepath.Join(t.TempDir(), "sync.db")
+	if d := os.Getenv("BEEHIVE_TEST_DATABASE_DRIVER"); d != "" {
+		cfg.DB.Driver = config.DBDriver(d)
+		cfg.DB.DSN = os.Getenv("BEEHIVE_TEST_DATABASE_DSN")
+	}
 	store, err := sqlstore.Open(cfg)
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
 	t.Cleanup(func() { store.Close() })
+	resetSchema(t, store, cfg.DB.Driver)
 	if err := store.Migrate(context.Background()); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
@@ -45,6 +53,26 @@ func newSyncFixture(t *testing.T) *SyncService {
 		}
 	}
 	return NewSyncService(db, wsync.NewHLC("test"))
+}
+
+// resetSchema empties a live test database so every test starts blank.
+// (SQLite fixtures live in a fresh temp dir and need no reset.)
+func resetSchema(t *testing.T, store *sqlstore.Store, driver config.DBDriver) {
+	t.Helper()
+	db := store.DB()
+	switch driver {
+	case config.DriverPostgres:
+		db.MustExec(`DROP SCHEMA public CASCADE`)
+		db.MustExec(`CREATE SCHEMA public`)
+	case config.DriverMySQL:
+		var tables []string
+		if err := db.Select(&tables, `SHOW TABLES`); err != nil {
+			t.Fatalf("show tables: %v", err)
+		}
+		for _, table := range tables {
+			db.MustExec("DROP TABLE IF EXISTS `" + table + "`")
+		}
+	}
 }
 
 func identityCtx(user, org string) context.Context {
@@ -153,5 +181,61 @@ func TestPullFiltersByScope(t *testing.T) {
 	}
 	if len(resp.Msg.Changes) != 1 {
 		t.Fatalf("want exactly the own change, got %d", len(resp.Msg.Changes))
+	}
+}
+
+// TestPushAppliesSQLiteClientPayload pushes payloads shaped exactly like the
+// offline clients produce them (SQLite stores booleans as 0/1, integers arrive
+// as JSON numbers, unset timestamps as ""): the server must coerce them into
+// whatever the backing dialect expects (Postgres rejects 0/1 for BOOLEAN,
+// MySQL cannot parse RFC3339 into DATETIME).
+func TestPushAppliesSQLiteClientPayload(t *testing.T) {
+	svc := newSyncFixture(t)
+	ctx := identityCtx("user-a", "org-a")
+	if err := push(svc, ctx,
+		change("inspection", "insp-1", "apiary-a",
+			`{"hive_id":"hive-a","date":"2026-07-11T10:00:00Z","queen_seen":1,"eggs_seen":0,`+
+				`"covered_larva":1,"frames":9,"brood_frames":4,"honey_kg":2.5,"temp_hive":34.8,`+
+				`"note":"","created_at":"2026-07-11T10:05:00Z","deleted":0,"photo_keys":{"add":["k1"]}}`),
+		change("treatment", "treat-1", "apiary-a",
+			`{"hive_id":"hive-a","date":"2026-08-18T09:00:00Z","product":"Formic acid 60%",`+
+				`"withdrawal_until":"","deleted":0}`),
+		change("task", "task-1", "apiary-a",
+			`{"title":"feed","done":0,"priority":2,"due_at":"2026-08-01","created_at":"2026-07-11T10:00:00Z","deleted":0}`),
+	); err != nil {
+		t.Fatalf("push client payload: %v", err)
+	}
+
+	var queenSeen, eggsSeen bool
+	var frames int
+	if err := svc.db.QueryRow(
+		`SELECT queen_seen, eggs_seen, frames FROM inspection WHERE id = 'insp-1'`).
+		Scan(&queenSeen, &eggsSeen, &frames); err != nil {
+		t.Fatalf("inspection row: %v", err)
+	}
+	if !queenSeen || eggsSeen || frames != 9 {
+		t.Fatalf("coercion: queen_seen=%v eggs_seen=%v frames=%d, want true/false/9", queenSeen, eggsSeen, frames)
+	}
+	var withdrawal any
+	if err := svc.db.QueryRow(
+		`SELECT withdrawal_until FROM treatment WHERE id = 'treat-1'`).Scan(&withdrawal); err != nil {
+		t.Fatalf("treatment row: %v", err)
+	}
+	if s, isStr := withdrawal.(string); withdrawal != nil && !(isStr && s == "") {
+		t.Fatalf(`withdrawal_until = %v (%T), want NULL or ""`, withdrawal, withdrawal)
+	}
+
+	// A delete op flips the tombstone (bool column) on every dialect.
+	del := change("task", "task-1", "apiary-a", ``)
+	del.Op = wv1.ChangeOp_CHANGE_OP_DELETE
+	if err := push(svc, ctx, del); err != nil {
+		t.Fatalf("push delete: %v", err)
+	}
+	var deleted bool
+	if err := svc.db.QueryRow(`SELECT deleted FROM task WHERE id = 'task-1'`).Scan(&deleted); err != nil {
+		t.Fatalf("task row: %v", err)
+	}
+	if !deleted {
+		t.Fatalf("task not tombstoned after delete op")
 	}
 }

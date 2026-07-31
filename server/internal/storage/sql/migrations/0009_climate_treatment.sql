@@ -13,10 +13,10 @@ ALTER TABLE inspection ADD COLUMN humidity_outside REAL;
 DROP TABLE IF EXISTS treatment;
 CREATE TABLE IF NOT EXISTS treatment (
   id                TEXT PRIMARY KEY,
-  organization_id   TEXT NOT NULL,
-  apiary_id         TEXT NOT NULL DEFAULT '',
-  hive_id           TEXT NOT NULL DEFAULT '',
-  queen_id          TEXT NOT NULL DEFAULT '',
+  organization_id   VARCHAR(64) NOT NULL,
+  apiary_id         VARCHAR(64) NOT NULL DEFAULT '',
+  hive_id           VARCHAR(64) NOT NULL DEFAULT '',
+  queen_id          VARCHAR(64) NOT NULL DEFAULT '',
   date              TIMESTAMP,
   product           TEXT NOT NULL DEFAULT '',
   active_ingredient TEXT NOT NULL DEFAULT '',
@@ -27,6 +27,6 @@ CREATE TABLE IF NOT EXISTS treatment (
   reason            TEXT NOT NULL DEFAULT '',
   note              TEXT NOT NULL DEFAULT '',
   field_hlc         TEXT NOT NULL DEFAULT '{}',
-  deleted           BOOLEAN NOT NULL DEFAULT 0
+  deleted           BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE INDEX IF NOT EXISTS idx_treatment_hive ON treatment (hive_id, date);

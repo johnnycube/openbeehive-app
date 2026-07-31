@@ -4,13 +4,13 @@
 
 CREATE TABLE IF NOT EXISTS webauthn_user (
   id           TEXT PRIMARY KEY,
-  name         TEXT NOT NULL UNIQUE,
+  name         VARCHAR(255) NOT NULL UNIQUE,
   display_name TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS webauthn_credential (
   id      TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
   cred    TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_wa_cred_user ON webauthn_credential (user_id);

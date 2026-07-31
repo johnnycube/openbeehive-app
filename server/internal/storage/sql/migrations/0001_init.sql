@@ -1,6 +1,9 @@
 -- 0001_init.sql
--- Portables Schema: nur TEXT/INTEGER/REAL/TIMESTAMP/BOOLEAN, String-UUIDs.
--- Dialect specifics are adjusted by Store.translate().
+-- Portable schema: TEXT/INTEGER/REAL/TIMESTAMP/BOOLEAN, string UUIDs.
+-- Columns that are indexed (PK, UNIQUE or CREATE INDEX) use VARCHAR(n):
+-- MySQL cannot index TEXT without a prefix length. Boolean defaults are
+-- written as TRUE/FALSE (Postgres rejects 0/1 for BOOLEAN).
+-- Remaining dialect specifics are adjusted by Store.translate().
 
 CREATE TABLE IF NOT EXISTS organization (
   id          TEXT PRIMARY KEY,
@@ -11,22 +14,22 @@ CREATE TABLE IF NOT EXISTS organization (
 
 CREATE TABLE IF NOT EXISTS "user" (
   id           TEXT PRIMARY KEY,
-  email        TEXT NOT NULL UNIQUE,
+  email        VARCHAR(255) NOT NULL UNIQUE,
   name         TEXT NOT NULL DEFAULT '',
   oidc_subject TEXT NOT NULL,                  -- provider:sub
   created_at   TIMESTAMP NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS member (
-  organization_id TEXT NOT NULL,
-  benutzer_id     TEXT NOT NULL,
+  organization_id VARCHAR(64) NOT NULL,
+  benutzer_id     VARCHAR(64) NOT NULL,
   role           TEXT NOT NULL DEFAULT 'owner', -- owner | imker | viewer
   PRIMARY KEY (organization_id, benutzer_id)
 );
 
 CREATE TABLE IF NOT EXISTS apiary (
   id              TEXT PRIMARY KEY,
-  organization_id TEXT NOT NULL,
+  organization_id VARCHAR(64) NOT NULL,
   name            TEXT NOT NULL,
   address            TEXT NOT NULL DEFAULT '',
   lat             REAL NOT NULL DEFAULT 0,
@@ -39,8 +42,8 @@ CREATE INDEX IF NOT EXISTS idx_apiary_org ON apiary (organization_id);
 
 CREATE TABLE IF NOT EXISTS hive (
   id              TEXT PRIMARY KEY,
-  organization_id TEXT NOT NULL,
-  apiary_id     TEXT NOT NULL,
+  organization_id VARCHAR(64) NOT NULL,
+  apiary_id     VARCHAR(64) NOT NULL,
   name            TEXT NOT NULL,
   type             INTEGER NOT NULL DEFAULT 0,
   status          INTEGER NOT NULL DEFAULT 1,
@@ -56,14 +59,14 @@ CREATE INDEX IF NOT EXISTS idx_placement ON hive (apiary_id);
 
 CREATE TABLE IF NOT EXISTS queen (
   id              TEXT PRIMARY KEY,
-  organization_id TEXT NOT NULL,
-  hive_id        TEXT NOT NULL,
+  organization_id VARCHAR(64) NOT NULL,
+  hive_id        VARCHAR(64) NOT NULL,
   year            INTEGER NOT NULL,
   marking      INTEGER NOT NULL DEFAULT 0,
   origin        TEXT NOT NULL DEFAULT '',
   breeder_number     TEXT NOT NULL DEFAULT '',
   introduced_at   TIMESTAMP,
-  active           BOOLEAN NOT NULL DEFAULT 1,
+  active           BOOLEAN NOT NULL DEFAULT TRUE,
   note           TEXT NOT NULL DEFAULT '',
   created_at      TIMESTAMP NOT NULL,
   updated_at      TIMESTAMP NOT NULL
@@ -72,12 +75,12 @@ CREATE INDEX IF NOT EXISTS idx_queen_hive ON queen (hive_id);
 
 CREATE TABLE IF NOT EXISTS inspection (
   id               TEXT PRIMARY KEY,
-  organization_id  TEXT NOT NULL,
-  hive_id         TEXT NOT NULL,
+  organization_id  VARCHAR(64) NOT NULL,
+  hive_id         VARCHAR(64) NOT NULL,
   date            TIMESTAMP NOT NULL,
   weather           TEXT NOT NULL DEFAULT '',
-  queen_seen BOOLEAN NOT NULL DEFAULT 0,
-  eggs_seen     BOOLEAN NOT NULL DEFAULT 0,
+  queen_seen BOOLEAN NOT NULL DEFAULT FALSE,
+  eggs_seen     BOOLEAN NOT NULL DEFAULT FALSE,
   temperament         INTEGER NOT NULL DEFAULT 0,
   frames      INTEGER NOT NULL DEFAULT 0,
   stores           INTEGER NOT NULL DEFAULT 0,
@@ -92,12 +95,12 @@ CREATE INDEX IF NOT EXISTS idx_inspection_hive ON inspection (hive_id);
 
 CREATE TABLE IF NOT EXISTS task (
   id              TEXT PRIMARY KEY,
-  organization_id TEXT NOT NULL,
+  organization_id VARCHAR(64) NOT NULL,
   title           TEXT NOT NULL,
   hive_id        TEXT,
   apiary_id     TEXT,
   due_at      TIMESTAMP,
-  done        BOOLEAN NOT NULL DEFAULT 0,
+  done        BOOLEAN NOT NULL DEFAULT FALSE,
   priority      INTEGER NOT NULL DEFAULT 2,
   note           TEXT NOT NULL DEFAULT '',
   recurrence    TEXT NOT NULL DEFAULT '',
@@ -108,8 +111,8 @@ CREATE INDEX IF NOT EXISTS idx_task_org ON task (organization_id);
 
 CREATE TABLE IF NOT EXISTS treatment (
   id              TEXT PRIMARY KEY,
-  organization_id TEXT NOT NULL,
-  hive_id        TEXT NOT NULL,
+  organization_id VARCHAR(64) NOT NULL,
+  hive_id        VARCHAR(64) NOT NULL,
   date           TIMESTAMP NOT NULL,
   product          TEXT NOT NULL DEFAULT '',
   batch          TEXT NOT NULL DEFAULT '',
@@ -121,8 +124,8 @@ CREATE TABLE IF NOT EXISTS treatment (
 
 CREATE TABLE IF NOT EXISTS harvest (
   id              TEXT PRIMARY KEY,
-  organization_id TEXT NOT NULL,
-  apiary_id     TEXT NOT NULL,
+  organization_id VARCHAR(64) NOT NULL,
+  apiary_id     VARCHAR(64) NOT NULL,
   date           TIMESTAMP NOT NULL,
   variety           TEXT NOT NULL DEFAULT '',
   amount_kg        REAL NOT NULL DEFAULT 0,
