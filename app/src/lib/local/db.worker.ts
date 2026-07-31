@@ -20,7 +20,12 @@ async function getDb() {
       try {
         // Persistent: OPFS SAHPool VFS (no SharedArrayBuffer / cross-origin
         // isolation required — works behind any reverse proxy).
-        const pool = await sqlite3.installOpfsSAHPoolVfs({ name: 'openbeehive' });
+        // initialCapacity: the pool's slot count caps how many files SQLite
+        // can hold open — per-tenant db files PLUS their journals/temp files.
+        // The default (6) exhausts on the first write once a device has a few
+        // tenants, failing with SQLITE_CANTOPEN when the journal can't get a
+        // slot. Slots are cheap (empty OPFS files), so reserve plenty.
+        const pool = await sqlite3.installOpfsSAHPoolVfs({ name: 'openbeehive', initialCapacity: 24 });
         return new pool.OpfsSAHPoolDb('/' + dbName);
       } catch (err) {
         // OPFS is unavailable in some environments — notably Firefox Private
