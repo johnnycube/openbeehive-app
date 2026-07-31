@@ -6,26 +6,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/johnnycube/openbeehive-app/server/internal/config"
 	"github.com/johnnycube/openbeehive-app/server/internal/storage"
 )
-
-// realUserCount counts accounts excluding the seeded demo user. The demo is
-// installed at boot, before anyone signs up — it must not swallow first-run
-// setup (the first real account becoming the admin, allowed even when the
-// instance is invite-only).
-func realUserCount(ctx context.Context, users storage.UserRepo, cfg *config.Config) (int, error) {
-	count, err := users.Count(ctx)
-	if err != nil {
-		return 0, err
-	}
-	if cfg.Demo.Enabled && count > 0 {
-		if _, err := users.GetByEmail(ctx, cfg.Demo.Email); err == nil {
-			count--
-		}
-	}
-	return count, nil
-}
 
 // Provisioner creates and links users and their tenants (organizations).
 // A new account always gets a personal tenant it owns; it may join others.

@@ -7,7 +7,7 @@
   // Auth endpoints are on the API origin. Empty = same origin (single-binary prod).
   const API = (import.meta.env.BEEHIVE_API_URL ?? '').replace(/\/$/, '');
 
-  type Mode = 'loading' | 'signin' | 'setup' | 'signup' | 'verify' | 'single';
+  type Mode = 'loading' | 'signin' | 'signup' | 'verify' | 'single';
   let mode = $state<Mode>('loading');
   let emailVerification = $state(false);
   let hasPassword = $state(true);
@@ -41,8 +41,7 @@
       if (!hasPassword && !providers.length && !webauthn && !demoEnabled) {
         mode = 'single'; goto('/'); return;
       }
-      if (j.needs_setup && hasPassword) mode = 'setup';
-      else if (inviteToken && hasPassword) mode = 'signup'; // invited: most likely a fresh account
+      if (inviteToken && hasPassword) mode = 'signup'; // invited: most likely a fresh account
       else mode = 'signin';
     } catch {
       mode = 'single';
@@ -115,7 +114,7 @@
     }
   }
 
-  const isSignup = $derived(mode === 'setup' || mode === 'signup');
+  const isSignup = $derived(mode === 'signup');
   function onSubmit(e: Event) {
     e.preventDefault();
     submit(isSignup ? 'signup' : 'signin');
@@ -136,25 +135,21 @@
 
     {:else}
       <h1>
-        {#if mode === 'setup'}{$_('auth.setup_title')}
-        {:else if mode === 'signup'}{$_('auth.create_title')}
+        {#if mode === 'signup'}{$_('auth.create_title')}
         {:else}{$_('auth.signin_title')}{/if}
       </h1>
-      <p class="muted">
-        {#if mode === 'setup'}{$_('auth.setup_sub')}
-        {:else}{$_('app.tagline')}{/if}
-      </p>
+      <p class="muted">{$_('app.tagline')}</p>
 
       {#if inviteToken}
         <p class="notice">✉️ {$_('auth.invited_banner')}</p>
-      {:else if !registration && mode !== 'setup'}
+      {:else if !registration}
         <p class="notice">{$_('auth.invite_only_banner')}</p>
       {/if}
 
       {#if justVerified}<p class="ok">{$_('auth.verified_ok')}</p>{/if}
       {#if error}<p class="err">{error}</p>{/if}
 
-      {#if demoEnabled && mode !== 'setup'}
+      {#if demoEnabled}
         <button class="primary demo" onclick={demoLogin} disabled={busy}>🐝 {$_('auth.try_demo')}</button>
       {/if}
 
@@ -170,8 +165,7 @@
             <input type="password" bind:value={password} minlength="8"
               autocomplete={isSignup ? 'new-password' : 'current-password'} required /></label>
           <button class="primary" type="submit" disabled={busy}>
-            {#if mode === 'setup'}{$_('auth.create_admin')}
-            {:else if mode === 'signup'}{$_('auth.signup')}
+            {#if mode === 'signup'}{$_('auth.signup')}
             {:else}{$_('auth.signin')}{/if}
           </button>
         </form>

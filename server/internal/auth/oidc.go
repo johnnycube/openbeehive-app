@@ -170,25 +170,15 @@ func provisionOIDCUser(ctx context.Context, users storage.UserRepo, prov *Provis
 			return u, nil
 		}
 	}
-	count, err := realUserCount(ctx, users, cfg)
-	if err != nil {
-		return nil, err
-	}
-	// Demo instances never provision new accounts (the seeded demo user is the
-	// only login). Closes the first-run-admin path here too, mirroring signup.
-	if cfg.Demo.Enabled {
+	// Invite-only instances provision no new accounts over OIDC (invites are a
+	// password-signup flow); existing accounts linked above sign in normally.
+	// Mirrors signup: provisioning never grants admin (see EnsureAdmin).
+	if !cfg.Auth.RegistrationOpen {
 		return nil, errInviteOnly
-	}
-	if !cfg.Auth.RegistrationOpen && count > 0 {
-		return nil, errInviteOnly
-	}
-	role := "user"
-	if count == 0 {
-		role = "admin"
 	}
 	u := &storage.User{
 		ID: uuid.NewString(), Email: c.Email, Name: c.Name, OIDCSubject: subject,
-		Role: role, EmailVerified: true, CreatedAt: time.Now().UTC(),
+		Role: "user", EmailVerified: true, CreatedAt: time.Now().UTC(),
 	}
 	if err := users.Create(ctx, u); err != nil {
 		return nil, err

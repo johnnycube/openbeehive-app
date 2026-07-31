@@ -19,8 +19,10 @@ import (
 )
 
 // PasswordAuth implements email + password onboarding:
-//   - the FIRST account created on a fresh instance becomes the admin,
-//   - later accounts are regular users,
+//   - sign-up always creates a regular user; the instance admin is the
+//     dedicated account from BEEHIVE_ADMIN_* (see EnsureAdmin),
+//   - open registration or invite-only is a per-instance switch
+//     (BEEHIVE_REGISTRATION), independent of the demo,
 //   - email verification is optional, gated by BEEHIVE_EMAIL_VERIFICATION.
 type PasswordAuth struct {
 	users    storage.UserRepo
@@ -75,15 +77,6 @@ func (p *PasswordAuth) signup(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	// No public account creation on a demo instance. The seeded demo account is
-	// the only login; without this, the first visitor to hit setup would create
-	// the instance-admin account (first-run setup bypasses invite-only). This is
-	// the authoritative server-side block — the login UI hiding setup is not
-	// enough.
-	if p.cfg.Demo.Enabled {
-		respondJSON(w, http.StatusForbidden, map[string]any{"error": "sign-up is disabled on the demo"})
-		return
-	}
 	var req credsReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid body"})
@@ -94,21 +87,22 @@ func (p *PasswordAuth) signup(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, map[string]any{"error": "a valid email and an 8+ character password are required"})
 		return
 	}
+	// The demo account is seeded, never signed up — even if the seeder has not
+	// run yet, its email must not be claimable by a visitor.
+	if p.cfg.Demo.Enabled && strings.EqualFold(req.Email, p.cfg.Demo.Email) {
+		respondJSON(w, http.StatusForbidden, map[string]any{"error": "this email is reserved"})
+		return
+	}
 	if _, err := p.users.GetByEmail(r.Context(), req.Email); err == nil {
 		respondJSON(w, http.StatusConflict, map[string]any{"error": "an account with this email already exists"})
 		return
 	}
 
-	count, err := realUserCount(r.Context(), p.users, p.cfg)
-	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
-		return
-	}
-
-	// Invite-only instance: beyond first-run setup, sign-up requires a valid
-	// invite issued to this email. The invite itself is consumed later by
+	// Invite-only instance: sign-up requires a valid invite issued to this
+	// email. (The admin account exists from boot — see EnsureAdmin — so there
+	// is no first-run exception.) The invite itself is consumed later by
 	// /auth/accept-invite (once the fresh account is signed in).
-	if !p.cfg.Auth.RegistrationOpen && count > 0 {
+	if !p.cfg.Auth.RegistrationOpen {
 		inv, err := p.invites.GetByToken(r.Context(), strings.TrimSpace(req.Invite))
 		if req.Invite == "" || err != nil {
 			respondJSON(w, http.StatusForbidden, map[string]any{"error": "this instance is invite-only", "status": "invite_only"})
@@ -120,10 +114,8 @@ func (p *PasswordAuth) signup(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Sign-up never grants admin; the instance admin comes from EnsureAdmin.
 	role := "user"
-	if count == 0 {
-		role = "admin" // first account on the instance is the admin
-	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {

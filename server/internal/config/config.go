@@ -72,11 +72,14 @@ type Config struct {
 }
 
 // DemoConfig installs a read-only demo tenant (seed data, reset hourly) for
-// showcasing. Off by default; enable with BEEHIVE_DEMO=true.
+// showcasing. Off by default; enable with BEEHIVE_DEMO=true. It coexists with
+// normal registration/invites; AutoLogin additionally signs anonymous
+// visitors straight into the demo (pure-showcase hosts only).
 type DemoConfig struct {
-	Enabled  bool
-	Email    string
-	Password string
+	Enabled   bool
+	AutoLogin bool
+	Email     string
+	Password  string
 }
 
 type ServerConfig struct {
@@ -108,11 +111,14 @@ type AuthConfig struct {
 	SessionTTL    time.Duration // app-session lifetime
 	WebAuthn      WebAuthnConfig
 
-	// Email + password onboarding. The first account created on a fresh
-	// instance becomes the admin; later accounts are regular users.
-	PasswordEnabled   bool // enable email/password registration + login
-	RegistrationOpen  bool // false = invite-only: no self-registration beyond first-run setup + invites
-	EmailVerification bool // require email verification before first login
+	// Email + password onboarding. The instance admin is a dedicated account
+	// defined by AdminEmail/AdminPassword (mandatory whenever password auth is
+	// enabled) and enforced at every boot; sign-ups are always regular users.
+	PasswordEnabled   bool   // enable email/password registration + login
+	RegistrationOpen  bool   // false = invite-only: sign-up requires an invite
+	AdminEmail        string // dedicated instance admin account (mandatory with password auth)
+	AdminPassword     string // authoritative at boot: resets the stored hash
+	EmailVerification bool   // require email verification before first login
 	SMTP              SMTPConfig
 }
 
@@ -297,9 +303,8 @@ func Load() (*Config, error) {
 	// Email/password onboarding. Defaults on for the cloud profile (multi-user),
 	// off for selfhost (single-user, no login) — override with BEEHIVE_PASSWORD_AUTH.
 	c.Auth.PasswordEnabled = envBool("PASSWORD_AUTH", c.Profile == "cloud")
-	// Open self-registration. When false the instance is invite-only: sign-up is
-	// limited to the first-run admin and holders of a valid invite; existing
-	// accounts sign in normally.
+	// Open self-registration. When false the instance is invite-only: sign-up
+	// requires a valid invite; existing accounts sign in normally.
 	c.Auth.RegistrationOpen = envBool("REGISTRATION", true)
 	c.Auth.EmailVerification = envBool("EMAIL_VERIFICATION", false)
 	c.Auth.SMTP = SMTPConfig{
@@ -311,14 +316,35 @@ func Load() (*Config, error) {
 	}
 
 	// Demo tenant (off by default). Enabling it implies password auth so the
-	// demo account can sign in.
+	// demo account can sign in. AutoLogin signs anonymous visitors into the
+	// demo automatically — for pure-showcase hosts; leave it off on a combined
+	// production+demo instance so real users get the login screen (with the
+	// demo button on it).
 	c.Demo = DemoConfig{
-		Enabled:  envBool("DEMO", false),
-		Email:    env("DEMO_EMAIL", "demo@app.openbeehive.org"),
-		Password: env("DEMO_PASSWORD", "demo"),
+		Enabled:   envBool("DEMO", false),
+		AutoLogin: envBool("DEMO_AUTOLOGIN", false),
+		Email:     env("DEMO_EMAIL", "demo@app.openbeehive.org"),
+		Password:  env("DEMO_PASSWORD", "demo"),
 	}
 	if c.Demo.Enabled {
 		c.Auth.PasswordEnabled = true
+	}
+
+	// Dedicated instance admin. Mandatory whenever a login exists (password
+	// auth enabled — single-user no-auth self-hosting needs none): admin is
+	// never granted any other way, and the env values are authoritative at
+	// every boot (see auth.EnsureAdmin — this doubles as password recovery).
+	c.Auth.AdminEmail = strings.TrimSpace(strings.ToLower(env("ADMIN_EMAIL", "")))
+	c.Auth.AdminPassword = env("ADMIN_PASSWORD", "")
+	if c.Auth.PasswordEnabled {
+		switch {
+		case c.Auth.AdminEmail == "" || c.Auth.AdminPassword == "":
+			return nil, fmt.Errorf("BEEHIVE_ADMIN_EMAIL and BEEHIVE_ADMIN_PASSWORD are required when password auth is enabled (it is implied by BEEHIVE_DEMO=true and the cloud profile)")
+		case len(c.Auth.AdminPassword) < 8:
+			return nil, fmt.Errorf("BEEHIVE_ADMIN_PASSWORD must be at least 8 characters")
+		case strings.EqualFold(c.Auth.AdminEmail, c.Demo.Email):
+			return nil, fmt.Errorf("BEEHIVE_ADMIN_EMAIL must not be the demo account email")
+		}
 	}
 
 	// --- OIDC: one triple per provider from ENV, e.g.

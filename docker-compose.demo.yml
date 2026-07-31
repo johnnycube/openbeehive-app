@@ -9,6 +9,8 @@
 #   POSTGRES_PASSWORD        openssl rand -base64 24
 #   MINIO_ROOT_PASSWORD      openssl rand -base64 24
 #   BEEHIVE_DEMO_PASSWORD    anything non-default (blocks password sign-in as the demo user)
+#   BEEHIVE_ADMIN_EMAIL      the dedicated instance admin (invites users from Settings)
+#   BEEHIVE_ADMIN_PASSWORD   8+ chars; authoritative on every boot (= recovery)
 #
 # Run:  docker compose -f docker-compose.demo.yml up -d
 # TLS terminates at your reverse proxy, which forwards to :8080.
@@ -62,11 +64,16 @@ services:
       BEEHIVE_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       BEEHIVE_SESSION_SECRET: ${BEEHIVE_SESSION_SECRET:?set BEEHIVE_SESSION_SECRET in .env}
       # Invite-only launch: no open registration; the sign-in screen shows a
-      # notice. The first account created on the fresh instance is the admin,
-      # who invites everyone else from Settings.
+      # notice. The admin below invites everyone else from Settings.
       BEEHIVE_REGISTRATION: "false"
+      # Dedicated instance admin, ensured on every boot.
+      BEEHIVE_ADMIN_EMAIL: ${BEEHIVE_ADMIN_EMAIL:?set BEEHIVE_ADMIN_EMAIL in .env}
+      BEEHIVE_ADMIN_PASSWORD: ${BEEHIVE_ADMIN_PASSWORD:?set BEEHIVE_ADMIN_PASSWORD in .env}
       # Public demo tenant: read-only sessions, seed data reset every hour.
+      # Anonymous visitors are signed into the demo automatically (showcase
+      # behavior); they can still sign in normally via /login.
       BEEHIVE_DEMO: "true"
+      BEEHIVE_DEMO_AUTOLOGIN: "true"
       BEEHIVE_DEMO_PASSWORD: ${BEEHIVE_DEMO_PASSWORD:?set BEEHIVE_DEMO_PASSWORD in .env}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]

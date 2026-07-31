@@ -46,8 +46,6 @@
   },
   "auth": {
     "entering": "Openbeehive wird geöffnet…",
-    "setup_title": "Willkommen – richte deine Instanz ein",
-    "setup_sub": "Lege das erste Konto an. Es wird zum Administrator dieser Instanz.",
     "signin_title": "Anmelden",
     "create_title": "Konto erstellen",
     "name": "Name",
@@ -55,7 +53,6 @@
     "password": "Passwort",
     "signin": "Anmelden",
     "signup": "Konto erstellen",
-    "create_admin": "Admin-Konto erstellen",
     "no_account": "Neu hier? Konto erstellen",
     "have_account": "Schon ein Konto? Anmelden",
     "verify_title": "Sieh in deine E-Mails",

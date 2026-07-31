@@ -44,6 +44,16 @@ func main() {
 		log.Fatalf("migration: %v", err)
 	}
 
+	// Dedicated instance admin (BEEHIVE_ADMIN_EMAIL/PASSWORD, mandatory with
+	// password auth). Created or repaired on every boot; sign-up never grants
+	// the admin role.
+	if cfg.Auth.PasswordEnabled {
+		if err := auth.EnsureAdmin(ctx, store.Users(), cfg); err != nil {
+			log.Fatalf("auth: %v", err)
+		}
+		log.Printf("auth: instance admin ensured (%s)", cfg.Auth.AdminEmail)
+	}
+
 	// Demo tenant (off by default; BEEHIVE_DEMO=true). Seeds 15 hives across 4
 	// apiaries and re-seeds hourly so the showcase stays consistent.
 	if cfg.Demo.Enabled {

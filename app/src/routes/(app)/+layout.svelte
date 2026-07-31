@@ -44,9 +44,11 @@
       });
 
       if (authRequired && !me) {
-        // Public demo: sign in as the demo user automatically so the URL "just
-        // works". Guarded so a failing demo-login can't loop on reload.
-        if (inst.demo && !sessionStorage.getItem('obh.demoTried')) {
+        // Pure-showcase host (BEEHIVE_DEMO_AUTOLOGIN): sign in as the demo user
+        // automatically so the URL "just works". Combined production+demo
+        // instances leave this off — visitors get /login, which carries the
+        // demo button. Guarded so a failing demo-login can't loop on reload.
+        if (inst.demo_autologin && !sessionStorage.getItem('obh.demoTried')) {
           sessionStorage.setItem('obh.demoTried', '1');
           const j = await fetchJSON('/auth/demo-login', {
             method: 'POST',

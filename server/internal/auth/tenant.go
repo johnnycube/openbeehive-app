@@ -42,26 +42,20 @@ func (t *TenantAPI) Routes(mux *http.ServeMux) {
 // instance advertises onboarding state + every enabled sign-in method, so the
 // login screen can render exactly what's available.
 func (t *TenantAPI) instance(w http.ResponseWriter, r *http.Request) {
-	n, err := realUserCount(r.Context(), t.users, t.cfg)
-	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
-		return
-	}
 	providers := t.cfg.OIDC.Enabled
 	if providers == nil {
 		providers = []string{}
 	}
 	respondJSON(w, http.StatusOK, map[string]any{
-		// First run: the next sign-up is the admin — but never on a demo instance,
-		// where public sign-up is disabled, so the login screen shows the demo
-		// button instead of an instance-setup form.
-		"needs_setup":        n == 0 && !t.cfg.Demo.Enabled,
 		"password_auth":      t.cfg.Auth.PasswordEnabled,
 		"registration":       t.cfg.Auth.RegistrationOpen,
 		"email_verification": t.cfg.Auth.EmailVerification,
 		"oidc_providers":     providers,
 		"webauthn":           t.cfg.Auth.WebAuthn.Enabled,
 		"demo":               t.cfg.Demo.Enabled,
+		// Pure-showcase hosts: anonymous visitors are signed into the demo
+		// automatically instead of seeing the login screen.
+		"demo_autologin": t.cfg.Demo.Enabled && t.cfg.Demo.AutoLogin,
 	})
 }
 

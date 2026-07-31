@@ -39,6 +39,9 @@ services:
       BEEHIVE_MINIO_ACCESS_KEY: minioadmin
       BEEHIVE_MINIO_SECRET_KEY: minioadmin
       BEEHIVE_SESSION_SECRET: ${BEEHIVE_SESSION_SECRET}
+      # Cloud profile enables password auth, which requires the instance admin.
+      BEEHIVE_ADMIN_EMAIL: ${BEEHIVE_ADMIN_EMAIL:?set BEEHIVE_ADMIN_EMAIL in .env}
+      BEEHIVE_ADMIN_PASSWORD: ${BEEHIVE_ADMIN_PASSWORD:?set BEEHIVE_ADMIN_PASSWORD in .env}
       BEEHIVE_OIDC_PROVIDERS: "google"
       BEEHIVE_OIDC_GOOGLE_ISSUER: https://accounts.google.com
       BEEHIVE_OIDC_GOOGLE_CLIENT_ID: ${BEEHIVE_OIDC_GOOGLE_CLIENT_ID}

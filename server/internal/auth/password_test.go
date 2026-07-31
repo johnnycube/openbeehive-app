@@ -29,6 +29,12 @@ func newAuthFixture(t *testing.T, cfg *config.Config) (*httptest.Server, *sqlsto
 	if err := store.Migrate(context.Background()); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
+	// Mirror the boot sequence: the dedicated admin exists before any request.
+	if cfg.Auth.AdminEmail != "" {
+		if err := EnsureAdmin(context.Background(), store.Users(), cfg); err != nil {
+			t.Fatalf("ensure admin: %v", err)
+		}
+	}
 	sessions := NewSessionManager("test-secret", time.Hour)
 	prov := NewProvisioner(store.Users(), store.Orgs(), store.Members())
 	mux := http.NewServeMux()
@@ -55,17 +61,13 @@ func TestSignupInviteOnly(t *testing.T) {
 	cfg := &config.Config{Profile: "selfhost"}
 	cfg.Auth.PasswordEnabled = true
 	cfg.Auth.RegistrationOpen = false
+	cfg.Auth.AdminEmail = "admin@test.dev"
+	cfg.Auth.AdminPassword = "password123"
 	srv, store, _ := newAuthFixture(t, cfg)
 
-	// First-run setup is always allowed and creates the admin.
+	// No first-run exception: the admin exists from boot, so sign-up without an
+	// invite is always rejected on an invite-only instance.
 	code, j := postJSON(t, srv.URL+"/auth/signup",
-		map[string]string{"email": "admin@test.dev", "password": "password123", "name": "Admin"})
-	if code != http.StatusOK || j["admin"] != true {
-		t.Fatalf("first signup: code=%d resp=%v", code, j)
-	}
-
-	// Open registration is closed for everyone after that.
-	code, j = postJSON(t, srv.URL+"/auth/signup",
 		map[string]string{"email": "stranger@test.dev", "password": "password123"})
 	if code != http.StatusForbidden || j["status"] != "invite_only" {
 		t.Fatalf("stranger signup: code=%d resp=%v", code, j)
@@ -87,43 +89,124 @@ func TestSignupInviteOnly(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("invited signup: code=%d resp=%v", code, j)
 	}
+	if j["admin"] == true {
+		t.Fatalf("sign-up must never grant the admin role: resp=%v", j)
+	}
 
-	// Existing accounts keep signing in.
-	code, _ = postJSON(t, srv.URL+"/auth/signin",
+	// The bootstrapped admin signs in with the configured password.
+	code, j = postJSON(t, srv.URL+"/auth/signin",
 		map[string]string{"email": "admin@test.dev", "password": "password123"})
-	if code != http.StatusOK {
-		t.Fatalf("admin signin: code=%d", code)
+	if code != http.StatusOK || j["admin"] != true {
+		t.Fatalf("admin signin: code=%d resp=%v", code, j)
 	}
 }
 
-func TestDemoInstanceDisablesPublicSignup(t *testing.T) {
+// TestDemoCoexistsWithRegistration: a demo instance with open registration
+// accepts normal sign-ups; only the demo email itself is reserved.
+func TestDemoCoexistsWithRegistration(t *testing.T) {
 	cfg := &config.Config{Profile: "selfhost"}
 	cfg.Auth.PasswordEnabled = true
-	cfg.Auth.RegistrationOpen = false
+	cfg.Auth.RegistrationOpen = true
+	cfg.Auth.AdminEmail = "admin@test.dev"
+	cfg.Auth.AdminPassword = "password123"
 	cfg.Demo = config.DemoConfig{Enabled: true, Email: "demo@test.dev", Password: "demo"}
 	srv, store, _ := newAuthFixture(t, cfg)
 
-	// The demo account exists before anyone signs up (installed at boot).
-	demo := &storage.User{ID: "demo-user", Email: "demo@test.dev", Name: "Demo",
-		Role: "user", EmailVerified: true, CreatedAt: time.Now().UTC()}
-	if err := store.Users().Create(context.Background(), demo); err != nil {
-		t.Fatalf("demo user: %v", err)
-	}
-
-	// Public sign-up is disabled on a demo instance. Without this, the seeded
-	// demo user is excluded from realUserCount, so the instance looks like it
-	// "needs setup" and the first visitor to POST /auth/signup would create the
-	// instance-admin account (first-run setup bypasses invite-only). The demo
-	// login is the only door; no account may be created via the public URL.
 	code, j := postJSON(t, srv.URL+"/auth/signup",
-		map[string]string{"email": "admin@test.dev", "password": "password123"})
-	if code != http.StatusForbidden {
-		t.Fatalf("signup on demo instance must be forbidden: code=%d resp=%v", code, j)
+		map[string]string{"email": "beekeeper@test.dev", "password": "password123"})
+	if code != http.StatusOK {
+		t.Fatalf("signup with demo enabled: code=%d resp=%v", code, j)
+	}
+	u, err := store.Users().GetByEmail(context.Background(), "beekeeper@test.dev")
+	if err != nil || u.Role != "user" {
+		t.Fatalf("signed-up account: err=%v role=%q, want user", err, u.Role)
 	}
 
-	// And no account was created as a side effect.
-	if _, err := store.Users().GetByEmail(context.Background(), "admin@test.dev"); err == nil {
-		t.Fatalf("signup on demo instance must not create an account")
+	// The demo email is seeded, never claimable via sign-up.
+	code, j = postJSON(t, srv.URL+"/auth/signup",
+		map[string]string{"email": "demo@test.dev", "password": "password123"})
+	if code != http.StatusForbidden {
+		t.Fatalf("demo email signup must be forbidden: code=%d resp=%v", code, j)
+	}
+}
+
+// TestDemoCoexistsWithInvites: demo on, registration closed — invites still
+// work (the combination used by a production instance with a public demo).
+func TestDemoCoexistsWithInvites(t *testing.T) {
+	cfg := &config.Config{Profile: "selfhost"}
+	cfg.Auth.PasswordEnabled = true
+	cfg.Auth.RegistrationOpen = false
+	cfg.Auth.AdminEmail = "admin@test.dev"
+	cfg.Auth.AdminPassword = "password123"
+	cfg.Demo = config.DemoConfig{Enabled: true, Email: "demo@test.dev", Password: "demo"}
+	srv, store, _ := newAuthFixture(t, cfg)
+
+	code, j := postJSON(t, srv.URL+"/auth/signup",
+		map[string]string{"email": "stranger@test.dev", "password": "password123"})
+	if code != http.StatusForbidden || j["status"] != "invite_only" {
+		t.Fatalf("uninvited signup: code=%d resp=%v", code, j)
+	}
+
+	inv := &storage.Invite{ID: "inv1", OrgID: "org1", Email: "friend@test.dev",
+		Role: "member", Token: "tok-friend", CreatedAt: time.Now().UTC()}
+	if err := store.Invites().Create(context.Background(), inv); err != nil {
+		t.Fatalf("invite create: %v", err)
+	}
+	code, j = postJSON(t, srv.URL+"/auth/signup", map[string]string{
+		"email": "friend@test.dev", "password": "password123", "invite": "tok-friend"})
+	if code != http.StatusOK {
+		t.Fatalf("invited signup with demo enabled: code=%d resp=%v", code, j)
+	}
+}
+
+// TestEnsureAdmin: the env-defined admin is created at boot, repaired when
+// tampered with, and its password follows the env value (recovery path).
+func TestEnsureAdmin(t *testing.T) {
+	ctx := context.Background()
+	cfg := &config.Config{Profile: "selfhost"}
+	cfg.Auth.PasswordEnabled = true
+	cfg.Auth.AdminEmail = "admin@test.dev"
+	cfg.Auth.AdminPassword = "password123"
+	srv, store, _ := newAuthFixture(t, cfg) // fixture runs EnsureAdmin once
+
+	u, err := store.Users().GetByEmail(ctx, "admin@test.dev")
+	if err != nil || u.Role != "admin" || !u.EmailVerified {
+		t.Fatalf("bootstrapped admin: err=%v role=%q verified=%v", err, u.Role, u.EmailVerified)
+	}
+
+	// Re-running is idempotent (same account, no duplicate).
+	if err := EnsureAdmin(ctx, store.Users(), cfg); err != nil {
+		t.Fatalf("ensure admin (2nd): %v", err)
+	}
+	if n, _ := store.Users().Count(ctx); n != 1 {
+		t.Fatalf("admin duplicated: %d users", n)
+	}
+
+	// A changed env password wins on the next boot.
+	cfg.Auth.AdminPassword = "rotated-secret"
+	if err := EnsureAdmin(ctx, store.Users(), cfg); err != nil {
+		t.Fatalf("ensure admin (rotate): %v", err)
+	}
+	code, _ := postJSON(t, srv.URL+"/auth/signin",
+		map[string]string{"email": "admin@test.dev", "password": "password123"})
+	if code != http.StatusUnauthorized {
+		t.Fatalf("old password must stop working: code=%d", code)
+	}
+	code, j := postJSON(t, srv.URL+"/auth/signin",
+		map[string]string{"email": "admin@test.dev", "password": "rotated-secret"})
+	if code != http.StatusOK || j["admin"] != true {
+		t.Fatalf("rotated password signin: code=%d resp=%v", code, j)
+	}
+
+	// A demoted role is forced back to admin.
+	if err := store.Users().SetCredentials(ctx, u.ID, u.PasswordHash, "user"); err != nil {
+		t.Fatalf("demote: %v", err)
+	}
+	if err := EnsureAdmin(ctx, store.Users(), cfg); err != nil {
+		t.Fatalf("ensure admin (repair): %v", err)
+	}
+	if u, _ = store.Users().GetByEmail(ctx, "admin@test.dev"); u.Role != "admin" {
+		t.Fatalf("role not repaired: %q", u.Role)
 	}
 }
 

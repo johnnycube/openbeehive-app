@@ -46,8 +46,6 @@
   },
   "auth": {
     "entering": "Apertura di Openbeehive…",
-    "setup_title": "Benvenuto: configura la tua istanza",
-    "setup_sub": "Crea il primo account. Diventerà l'amministratore di questa istanza.",
     "signin_title": "Accedi",
     "create_title": "Crea il tuo account",
     "name": "Nome",
@@ -55,7 +53,6 @@
     "password": "Password",
     "signin": "Accedi",
     "signup": "Crea account",
-    "create_admin": "Crea account amministratore",
     "no_account": "Nuovo qui? Crea un account",
     "have_account": "Hai già un account? Accedi",
     "verify_title": "Controlla la tua e-mail",

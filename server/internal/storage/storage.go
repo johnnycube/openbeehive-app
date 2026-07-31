@@ -42,8 +42,9 @@ type Hive struct {
 
 // (more Modelle: Queen, Inspection, Task, Treatment, Harvest – analog)
 
-// User is an account on the instance (email/password onboarding). The first
-// account created becomes the admin.
+// User is an account on the instance (email/password onboarding). The
+// instance admin is a dedicated account defined by BEEHIVE_ADMIN_EMAIL /
+// BEEHIVE_ADMIN_PASSWORD and enforced at boot (auth.EnsureAdmin).
 type User struct {
 	ID            string    `db:"id"`
 	Email         string    `db:"email"`
@@ -100,6 +101,9 @@ type UserRepo interface {
 	Create(ctx context.Context, u *User) error
 	MarkVerified(ctx context.Context, id string) error
 	LinkOIDC(ctx context.Context, id, oidcSubject string) error
+	// SetCredentials overwrites password hash and role and marks the account
+	// verified. Used by the instance-admin bootstrap (env is authoritative).
+	SetCredentials(ctx context.Context, id, passwordHash, role string) error
 }
 
 type OrgRepo interface {

@@ -90,3 +90,9 @@ func (r *userRepo) Create(ctx context.Context, u *storage.User) error {
 func (r *userRepo) MarkVerified(ctx context.Context, id string) error {
 	return r.s.exec(ctx, `UPDATE users SET email_verified = TRUE, verification_token = '' WHERE id = ?`, id)
 }
+
+func (r *userRepo) SetCredentials(ctx context.Context, id, passwordHash, role string) error {
+	return r.s.exec(ctx, `
+		UPDATE users SET password_hash = ?, role = ?, email_verified = TRUE, verification_token = ''
+		WHERE id = ?`, passwordHash, role, id)
+}

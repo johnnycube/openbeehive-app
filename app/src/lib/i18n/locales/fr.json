@@ -46,8 +46,6 @@
   },
   "auth": {
     "entering": "Ouverture d'Openbeehive…",
-    "setup_title": "Bienvenue — configurez votre instance",
-    "setup_sub": "Créez le premier compte. Il devient l'administrateur de cette instance.",
     "signin_title": "Se connecter",
     "create_title": "Créer votre compte",
     "name": "Nom",
@@ -55,7 +53,6 @@
     "password": "Mot de passe",
     "signin": "Se connecter",
     "signup": "Créer un compte",
-    "create_admin": "Créer le compte admin",
     "no_account": "Nouveau ? Créer un compte",
     "have_account": "Déjà un compte ? Se connecter",
     "verify_title": "Vérifiez vos e-mails",
