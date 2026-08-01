@@ -359,7 +359,8 @@
     "confirm_delete": "Eliminare questo? L'operazione non può essere annullata.",
     "saving": "Salvataggio…",
     "save_failed": "Salvataggio non riuscito: {msg}",
-    "syncing": "Sincronizzazione dei dati…"
+    "syncing": "Sincronizzazione dei dati…",
+    "volatile_store": "Archiviazione non disponibile: le modifiche non verranno conservate su questo dispositivo."
   },
   "pk": {
     "title": "Passkeys",

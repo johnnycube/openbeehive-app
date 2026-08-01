@@ -359,7 +359,8 @@
     "confirm_delete": "Delete this? This cannot be undone.",
     "saving": "Saving…",
     "save_failed": "Could not save: {msg}",
-    "syncing": "Syncing your data…"
+    "syncing": "Syncing your data…",
+    "volatile_store": "Storage is unavailable — changes will not persist on this device."
   },
   "pk": {
     "title": "Passkeys",

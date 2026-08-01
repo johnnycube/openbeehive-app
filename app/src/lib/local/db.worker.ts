@@ -24,25 +24,35 @@ async function getDb() {
   if (!dbPromise) {
     dbPromise = (async () => {
       const sqlite3 = await sqlite3InitModule();
-      try {
-        // Persistent: OPFS SAHPool VFS (no SharedArrayBuffer / cross-origin
-        // isolation required — works behind any reverse proxy).
-        pool = await sqlite3.installOpfsSAHPoolVfs({ name: 'openbeehive', initialCapacity: MIN_POOL_CAPACITY });
-        // initialCapacity only applies when the pool is first created; a pool
-        // that already exists on the device keeps its old (possibly smaller)
-        // capacity. Grow it explicitly so upgraded installs get the slots too.
-        await pool.reserveMinimumCapacity(MIN_POOL_CAPACITY);
-        return new pool.OpfsSAHPoolDb('/' + dbName);
-      } catch (err) {
-        // OPFS is unavailable in some environments — notably Firefox Private
-        // Browsing and browsers/settings that block storage — where
-        // navigator.storage.getDirectory() throws a SecurityError. Fall back to
-        // an in-memory database so the app still works this session; data won't
-        // persist across reloads. That's fine for the demo (reseeded hourly and
-        // pulled fresh) and a graceful degradation everywhere else.
-        console.warn('OPFS unavailable — using a non-persistent in-memory store:', err);
-        return new sqlite3.oo1.DB(':memory:', 'c');
+      // Persistent: OPFS SAHPool VFS (no SharedArrayBuffer / cross-origin
+      // isolation required — works behind any reverse proxy). The pool takes
+      // EXCLUSIVE access handles, so a page refresh can race the previous
+      // worker still holding them — retry briefly before falling back.
+      let lastErr: unknown;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 300));
+        try {
+          pool = await sqlite3.installOpfsSAHPoolVfs({ name: 'openbeehive', initialCapacity: MIN_POOL_CAPACITY });
+          // initialCapacity only applies when the pool is first created; a pool
+          // that already exists on the device keeps its old (possibly smaller)
+          // capacity. Grow it explicitly so upgraded installs get the slots too.
+          await pool.reserveMinimumCapacity(MIN_POOL_CAPACITY);
+          return new pool.OpfsSAHPoolDb('/' + dbName);
+        } catch (err) {
+          lastErr = err;
+        }
       }
+      // OPFS stays unavailable in some environments — notably Firefox Private
+      // Browsing and browsers/settings that block storage — where
+      // navigator.storage.getDirectory() throws a SecurityError, or another
+      // tab keeps holding the pool. Fall back to an in-memory database so the
+      // app still works this session; data won't persist across reloads.
+      // That's fine for the demo (reseeded hourly and pulled fresh) and a
+      // graceful degradation everywhere else. Tell the page so the user learns
+      // about it (db.ts shows a toast), not only the console.
+      console.warn('OPFS unavailable — using a non-persistent in-memory store:', lastErr);
+      (self as unknown as Worker).postMessage({ volatile: true });
+      return new sqlite3.oo1.DB(':memory:', 'c');
     })();
   }
   return dbPromise;

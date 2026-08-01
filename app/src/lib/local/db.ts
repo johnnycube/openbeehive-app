@@ -14,6 +14,9 @@ export interface LocalDB {
 // This module proxies exec/all/get to that worker over postMessage. ---
 import DbWorker from './db.worker?worker';
 import { migrateLocal } from './schema';
+import { toast } from '$lib/toast';
+import { get } from 'svelte/store';
+import { _ } from 'svelte-i18n';
 
 let dbPromise: Promise<LocalDB> | null = null;
 
@@ -28,7 +31,15 @@ async function init(): Promise<LocalDB> {
   const pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }>();
 
   worker.onmessage = (e: MessageEvent) => {
-    const { id, ok, rows, error } = e.data;
+    const { id, ok, rows, error, volatile } = e.data;
+    if (volatile) {
+      // The worker fell back to an in-memory database (OPFS unavailable:
+      // private browsing, another tab holding the pool). The app keeps
+      // working, but nothing persists — the user must hear that, not just
+      // the console.
+      toast(get(_)('common.volatile_store'), 15_000);
+      return;
+    }
     const p = pending.get(id);
     if (!p) return;
     pending.delete(id);

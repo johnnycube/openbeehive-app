@@ -359,7 +359,8 @@
     "confirm_delete": "¿Eliminar esto? Esta acción no se puede deshacer.",
     "saving": "Guardando…",
     "save_failed": "No se pudo guardar: {msg}",
-    "syncing": "Sincronizando tus datos…"
+    "syncing": "Sincronizando tus datos…",
+    "volatile_store": "El almacenamiento no está disponible: los cambios no se conservarán en este dispositivo."
   },
   "pk": {
     "title": "Passkeys",
