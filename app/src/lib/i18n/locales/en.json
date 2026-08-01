@@ -358,7 +358,8 @@
     "back": "Back",
     "confirm_delete": "Delete this? This cannot be undone.",
     "saving": "Saving…",
-    "save_failed": "Could not save: {msg}"
+    "save_failed": "Could not save: {msg}",
+    "syncing": "Syncing your data…"
   },
   "pk": {
     "title": "Passkeys",

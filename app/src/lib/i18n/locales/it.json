@@ -358,7 +358,8 @@
     "back": "Indietro",
     "confirm_delete": "Eliminare questo? L'operazione non può essere annullata.",
     "saving": "Salvataggio…",
-    "save_failed": "Salvataggio non riuscito: {msg}"
+    "save_failed": "Salvataggio non riuscito: {msg}",
+    "syncing": "Sincronizzazione dei dati…"
   },
   "pk": {
     "title": "Passkeys",

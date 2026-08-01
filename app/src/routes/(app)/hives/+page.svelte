@@ -2,7 +2,9 @@
   import { _ } from 'svelte-i18n';
   import { apiaries, hives, queens, inspections, MARKING_COLORS, MARKING_NAMES } from '$lib/local/repo';
   import { createHive } from '$lib/local/history';
-  import { dataVersion } from '$lib/local/live';
+  import { dataVersion, initialSyncPending } from '$lib/local/live';
+  import Skeleton from '$lib/components/Skeleton.svelte';
+  import Syncing from '$lib/components/Syncing.svelte';
 
   let rows = $state<any[]>([]);
   let apiaryList = $state<any[]>([]);
@@ -64,7 +66,9 @@
   {/if}
 
   {#if !loaded}
-    <p class="muted">…</p>
+    <Skeleton n={3} height={80} />
+  {:else if rows.length === 0 && $initialSyncPending}
+    <Syncing />
   {:else if apiaryList.length === 0}
     <p class="muted empty">{$_('hives.need_apiary')} <a href="/apiaries">{$_('apiaries.new')}</a></p>
   {:else if rows.length === 0}

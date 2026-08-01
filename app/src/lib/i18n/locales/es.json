@@ -358,7 +358,8 @@
     "back": "Atrás",
     "confirm_delete": "¿Eliminar esto? Esta acción no se puede deshacer.",
     "saving": "Guardando…",
-    "save_failed": "No se pudo guardar: {msg}"
+    "save_failed": "No se pudo guardar: {msg}",
+    "syncing": "Sincronizando tus datos…"
   },
   "pk": {
     "title": "Passkeys",

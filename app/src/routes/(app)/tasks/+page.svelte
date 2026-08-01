@@ -1,7 +1,9 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
   import { tasks } from '$lib/local/repo';
-  import { dataVersion } from '$lib/local/live';
+  import { dataVersion, initialSyncPending } from '$lib/local/live';
+  import Skeleton from '$lib/components/Skeleton.svelte';
+  import Syncing from '$lib/components/Syncing.svelte';
 
   let rows = $state<any[]>([]);
   let loaded = $state(false);
@@ -59,7 +61,11 @@
     <button class="primary" type="submit" disabled={!title.trim()}>{$_('tasks.add')}</button>
   </form>
 
-  {#if loaded && rows.length === 0}
+  {#if !loaded}
+    <Skeleton n={3} height={54} />
+  {:else if rows.length === 0 && $initialSyncPending}
+    <Syncing />
+  {:else if rows.length === 0}
     <p class="muted empty">{$_('tasks.empty')}</p>
   {:else}
     <ul class="list">

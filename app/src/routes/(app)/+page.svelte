@@ -3,12 +3,15 @@
   import { apiaries, hives, tasks as taskRepo } from '$lib/local/repo';
   import { getDB } from '$lib/local/db';
   import { honeyByYear } from '$lib/local/history';
-  import { dataVersion } from '$lib/local/live';
+  import { dataVersion, initialSyncPending } from '$lib/local/live';
+  import Skeleton from '$lib/components/Skeleton.svelte';
+  import Syncing from '$lib/components/Syncing.svelte';
 
   // Local-first dashboard: every figure is read straight from the device DB.
   let stats = $state({ apiaries: 0, hives: 0, active_queens: 0, open_tasks: 0, honey_kg_season: 0 });
   let due = $state<{ id: string; name: string; apiary: string; days: number }[]>([]);
   let tasks = $state<{ title: string; due: string; overdue: boolean }[]>([]);
+  let loaded = $state(false);
 
   function daysSince(iso?: string): number {
     if (!iso) return -1;
@@ -45,6 +48,7 @@
       .filter((t: any) => !t.done)
       .slice(0, 5)
       .map((t: any) => ({ title: t.title, due: t.due_at || '', overdue: !!t.due_at && t.due_at.slice(0, 10) < today }));
+    loaded = true;
   }
 
   $effect(() => { $dataVersion; load(); });
@@ -67,12 +71,14 @@
       ['stat_open', stats.open_tasks]
     ] as [key, val]}
       <div class="stat">
-        <span class="n">{val}</span>
+        <span class="n">{#if loaded}{val}{:else}<span class="n-skl" aria-hidden="true"></span>{/if}</span>
         <span class="l">{$_('dashboard.' + key)}</span>
       </div>
     {/each}
     <div class="stat honey">
-      <span class="n">{stats.honey_kg_season}<small> {$_('common.kg')}</small></span>
+      <span class="n">
+        {#if loaded}{stats.honey_kg_season}<small> {$_('common.kg')}</small>{:else}<span class="n-skl" aria-hidden="true"></span>{/if}
+      </span>
       <span class="l">{$_('dashboard.honey_season')}</span>
     </div>
   </div>
@@ -80,7 +86,11 @@
   <div class="cols">
     <section class="panel">
       <h2>{$_('dashboard.due')}</h2>
-      {#if due.length === 0}<p class="muted">{$_('dashboard.all_current')}</p>{/if}
+      {#if !loaded}
+        <Skeleton n={3} height={44} />
+      {:else if due.length === 0}
+        {#if $initialSyncPending}<Syncing />{:else}<p class="muted">{$_('dashboard.all_current')}</p>{/if}
+      {/if}
       {#each due as f}
         <a class="row" href={`/hives/${f.id}`}>
           <div><strong>{f.name}</strong><small>{f.apiary}</small></div>
@@ -93,7 +103,11 @@
 
     <section class="panel">
       <h2>{$_('dashboard.next_tasks')}</h2>
-      {#if tasks.length === 0}<p class="muted">{$_('tasks.empty')}</p>{/if}
+      {#if !loaded}
+        <Skeleton n={3} height={44} />
+      {:else if tasks.length === 0}
+        {#if $initialSyncPending}<Syncing />{:else}<p class="muted">{$_('tasks.empty')}</p>{/if}
+      {/if}
       {#each tasks as a}
         <div class="row">
           <div><strong>{a.title}</strong>{#if a.due}<small>{a.due}</small>{/if}</div>
@@ -119,6 +133,12 @@
   .stat.honey { background:linear-gradient(150deg,#fff5e3,#ffe9c6); border-color:#eecf9a; }
   .stat .n { font-family:'Fraunces',serif; font-size:2.2rem; font-weight:600; display:block; line-height:1; }
   .stat .l { color:var(--ink-soft); font-weight:600; font-size:.85rem; }
+  /* Shimmer placeholder in place of a stat number while the local read runs —
+     rendering a hard 0 would claim "you have nothing" before it is known. */
+  .stat .n-skl { display:inline-block; width:52px; height:.82em; border-radius:8px;
+    background:linear-gradient(100deg, rgba(199,127,34,.10) 40%, rgba(199,127,34,.22) 50%, rgba(199,127,34,.10) 60%);
+    background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
 
   .cols { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
   .panel { background:var(--cream2); border:1px solid var(--line); border-radius:18px; padding:20px; }

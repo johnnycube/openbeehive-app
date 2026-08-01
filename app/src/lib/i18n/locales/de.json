@@ -358,7 +358,8 @@
     "back": "Zurück",
     "confirm_delete": "Wirklich löschen? Das kann nicht rückgängig gemacht werden.",
     "saving": "Wird gespeichert…",
-    "save_failed": "Speichern fehlgeschlagen: {msg}"
+    "save_failed": "Speichern fehlgeschlagen: {msg}",
+    "syncing": "Daten werden synchronisiert…"
   },
   "pk": {
     "title": "Passkeys",
