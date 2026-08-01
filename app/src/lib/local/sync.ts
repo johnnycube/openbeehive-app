@@ -2,9 +2,10 @@
 // pulls foreign changes (Pull) and applies them via last-writer-wins.
 // Works offline (queued) and syncs automatically once connected.
 
+import { ConnectError, Code } from '@connectrpc/connect';
 import { getDB } from './db';
 import { hlc } from './hlc';
-import { parseFieldClock, accept, parseORSet, orAdd, orRemove } from './merge';
+import { parseFieldClock, accept, parseORSet, orAdd, orRemove, orRemoveTags } from './merge';
 import { bumpData } from './live';
 import { syncClient } from '$lib/client'; // generated Connect client (SyncService)
 
@@ -35,7 +36,23 @@ export async function push() {
     op: p.op, payloadJson: p.payload, hlc: p.hlc, authorId: p.author_id
   }));
 
-  const res = await syncClient.push({ changes });
+  let res;
+  try {
+    res = await syncClient.push({ changes });
+  } catch (e) {
+    // Permission denied is permanent for this batch (read-only demo session,
+    // unwritable scope): retrying every 15s can never succeed and would keep
+    // the outbox full forever. Drop the entries — the data itself stays in
+    // the local tables, only the (rejected) upload intent is discarded.
+    if (e instanceof ConnectError && e.code === Code.PermissionDenied) {
+      console.warn('push rejected as read-only — keeping changes locally:', e.message);
+      for (const p of pending) {
+        await db.exec(`DELETE FROM outbox WHERE id = ?`, [p.id]);
+      }
+      return;
+    }
+    throw e; // transient (offline, 5xx): keep the outbox and retry later
+  }
 
   // Remove successfully transmitted entries from the outbox.
   for (const p of pending) {
@@ -105,7 +122,12 @@ async function applyRemote(ch: any) {
     if (setCols.includes(k)) {
       const os = parseORSet(cur[k]);
       for (const e of v?.add ?? []) orAdd(os, e, ch.hlc);
-      for (const e of v?.remove ?? []) orRemove(os, e);
+      for (const e of v?.remove ?? []) {
+        // Newer deltas say which tags the origin observed; only those are
+        // tombstoned (add-wins). Old deltas without tags remove all local ones.
+        const tags = v?.removed_tags?.[e];
+        tags ? orRemoveTags(os, e, tags) : orRemove(os, e);
+      }
       sets.push(`${k} = ?`); args.push(JSON.stringify(os));
     } else if (accept(fc, k, ch.hlc)) {
       sets.push(`${k} = ?`); args.push(v);
@@ -134,7 +156,13 @@ export async function syncOnce() {
   try {
     do {
       rerun = false;
-      await push();
+      // A failing push (offline blip, server error) must not stop the pull:
+      // fresh remote data matters even while local changes wait in the outbox.
+      try {
+        await push();
+      } catch (e) {
+        console.warn('push deferred:', e);
+      }
       await pull();
     } while (rerun);
   } catch (e) {
