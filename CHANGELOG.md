@@ -5,6 +5,42 @@ All notable changes to the Openbeehive application are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-08-01
+
+### Fixed
+
+- **Saving could fail permanently with `SQLITE_CANTOPEN` ("unable to open
+  database file")** — most visible on the demo as an add button that did
+  nothing. Local OPFS storage pools created by earlier versions kept their
+  small slot count forever; the app now reserves the minimum capacity on
+  every start and grows the pool automatically if a write still runs out of
+  slots.
+- **Sync no longer stalls behind a failing push:** fresh data is pulled even
+  while the outbox cannot be sent, and pushes rejected as read-only (the demo
+  account, unwritable scopes) are dropped instead of retrying every 15
+  seconds — the affected changes simply stay on the device.
+- **Sync protocol, photo lists:** removes now carry the origin's observed
+  add-tags, so a photo re-added concurrently on another device survives a
+  remove (true add-wins). Deltas from older versions keep the previous
+  behavior.
+- **Failed local writes are visible:** the apiary form reports save errors
+  inline and keeps the typed input; everywhere else an error toast appears
+  instead of a silently dead button.
+
+### Added
+
+- **Interactive location picker for apiaries:** a map with a draggable pin
+  that stays in sync with the address field (OpenStreetMap/Nominatim), with
+  visible lookup states — searching, location set, no match, service
+  unreachable.
+- **Passkeys are bound to registered accounts:** enrollment lives in
+  settings, sign-in offers the passkey only for accounts that registered one.
+- **Test suites for the offline-first core.** Web (vitest on a real SQLite):
+  per-field LWW and OR-Set merge semantics, HLC ordering, repo/outbox writes,
+  sync error paths, geocoding states, and a two-device offline convergence
+  simulation. Server (Go): merge mirrors of the client tests, read-only-guard
+  coverage, and the OR-Set observed-tags round-trip through Push.
+
 ## [0.2.1] - 2026-07-31
 
 ### Added
@@ -60,5 +96,6 @@ First public release. 🐝
   Docker image for the cloud profile.
 - **Multi-language UI:** English, German, French, Spanish, Italian.
 
+[0.2.2]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.2.2
 [0.2.1]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.2.1
 [0.1.0]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.1.0
