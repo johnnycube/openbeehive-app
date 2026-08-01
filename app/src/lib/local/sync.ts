@@ -6,7 +6,7 @@ import { ConnectError, Code } from '@connectrpc/connect';
 import { getDB } from './db';
 import { hlc } from './hlc';
 import { parseFieldClock, accept, parseORSet, orAdd, orRemove, orRemoveTags } from './merge';
-import { bumpData } from './live';
+import { bumpData, initialSyncPending } from './live';
 import { syncClient } from '$lib/client'; // generated Connect client (SyncService)
 
 const SYNCED_TABLES = ['apiary', 'hive', 'queen', 'inspection', 'task', 'placement', 'harvest', 'treatment', 'event'];
@@ -68,21 +68,22 @@ export async function pull() {
   let cursor = await getCursor();
   let hasMore = true;
 
-  let applied = 0;
   while (hasMore) {
     const res = await syncClient.pull({ cursor, limit: 200 });
 
     for (const ch of res.changes) {
       hlc.recv(ch.hlc);
       await applyRemote(ch);
-      applied++;
     }
     cursor = res.nextCursor;
     await setCursor(cursor);
     hasMore = res.hasMore;
+    // Notify open pages per applied batch, not once at the end: a large first
+    // sync fills the UI progressively instead of after the whole download.
+    if (res.changes.length > 0) bumpData();
   }
-  // Notify open pages so their queries re-run with the freshly pulled data.
-  if (applied > 0) bumpData();
+  // This device now holds a full replica — an empty table is a real empty state.
+  initialSyncPending.set(false);
 }
 
 // Per-field LWW + OR-Set: only newer fields are applied, set fields
@@ -150,7 +151,12 @@ let rerun = false;
 // if new changes arrived while a run was in flight, loop once more so the latest
 // outbox entries are pushed without waiting for the periodic timer.
 export async function syncOnce() {
-  if (!navigator.onLine) return;
+  if (!navigator.onLine) {
+    // No pull is coming: what is stored locally is all there is right now, so
+    // pages must show their real (possibly empty) state, not a syncing hint.
+    initialSyncPending.set(false);
+    return;
+  }
   if (running) { rerun = true; return; }
   running = true;
   try {
@@ -167,13 +173,23 @@ export async function syncOnce() {
     } while (rerun);
   } catch (e) {
     console.warn('sync deferred:', e);
+    // Give up the syncing hint — a later retry delivers data via bumpData.
+    initialSyncPending.set(false);
   } finally {
     running = false;
   }
 }
 
 export function startSync() {
-  void syncOnce();
+  void (async () => {
+    // A non-empty cursor proves this device has pulled before and holds a full
+    // replica. Resolve the pending flag before the first network round-trip so
+    // a refresh with a genuinely empty account shows its CTA immediately.
+    try {
+      if (await getCursor()) initialSyncPending.set(false);
+    } catch { /* flag resolves with the first sync instead */ }
+    await syncOnce();
+  })();
   timer = setInterval(syncOnce, 15_000);          // periodic Fallback
   window.addEventListener('online', () => void syncOnce()); // immediately on reconnect
   // Optional: syncClient.subscribe({cursor}) for a real-time "poke".
