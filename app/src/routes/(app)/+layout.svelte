@@ -47,13 +47,15 @@
     // sync loop 401s. (Async work in an IIFE so onMount can still return the
     // listener cleanup synchronously.)
     void (async () => {
-      const inst = (await fetchJSON('/auth/instance')) ?? {};
-      const authRequired = !!(inst.password_auth || inst.oidc_providers?.length || inst.webauthn || inst.demo);
-
+      // Both requests are independent — fetch them in parallel so sync (and
+      // with it the first data on a fresh device) starts a round-trip earlier.
       const tok = localStorage.getItem('session');
-      const me = await fetchJSON('/auth/me', {
-        headers: tok ? { Authorization: `Bearer ${tok}` } : {}
-      });
+      const [instRes, me] = await Promise.all([
+        fetchJSON('/auth/instance'),
+        fetchJSON('/auth/me', { headers: tok ? { Authorization: `Bearer ${tok}` } : {} })
+      ]);
+      const inst = instRes ?? {};
+      const authRequired = !!(inst.password_auth || inst.oidc_providers?.length || inst.webauthn || inst.demo);
 
       if (authRequired && !me) {
         // Pure-showcase host (BEEHIVE_DEMO_AUTOLOGIN): sign in as the demo user
