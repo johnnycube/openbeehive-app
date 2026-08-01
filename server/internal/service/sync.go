@@ -451,8 +451,15 @@ func updateMerge(ctx context.Context, tx *sqlx.Tx, spec entitySpec, ch *wv1.Chan
 				for _, e := range toStrings(d["add"]) {
 					os.Add(e, ch.Hlc)
 				}
+				removedTags, _ := d["removed_tags"].(map[string]any)
 				for _, e := range toStrings(d["remove"]) {
-					os.Remove(e)
+					// Newer deltas carry the origin's observed tags; only those
+					// are tombstoned (add-wins). Old deltas remove all present.
+					if tags := toStrings(removedTags[e]); len(tags) > 0 {
+						os.RemoveTags(e, tags)
+					} else {
+						os.Remove(e)
+					}
 				}
 			}
 			set = append(set, c+" = ?")

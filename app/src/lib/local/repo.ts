@@ -64,9 +64,12 @@ export async function setRemove(entity: string, id: string, scopeId: string, fie
   const stamp = hlc.now();
   const cur = await db.get<any>(`SELECT ${field} FROM ${entity} WHERE id = ?`, [id]);
   const os = parseORSet(cur?.[field]);
+  // The delta carries WHICH add tags this device observed; receivers tombstone
+  // only those, so an add another device made concurrently survives (add-wins).
+  const observed = [...(os[elem]?.a ?? [])];
   orRemove(os, elem);
   await db.exec(`UPDATE ${entity} SET ${field} = ? WHERE id = ?`, [JSON.stringify(os), id]);
-  await enqueue(entity, id, scopeId, 1, { [field]: { remove: [elem] } }, stamp);
+  await enqueue(entity, id, scopeId, 1, { [field]: { remove: [elem], removed_tags: { [elem]: observed } } }, stamp);
 }
 
 // --- Public, typed API for the UI ---

@@ -39,6 +39,13 @@ export function orRemove(set: ORSet, elem: string) {
   for (const t of e.a) e.r = uniq(e.r, t); // nur observed tags remove
   set[elem] = e;
 }
+// Remove exactly the tags the ORIGIN device had observed (carried in the sync
+// delta). Tags added concurrently elsewhere stay visible — true add-wins.
+export function orRemoveTags(set: ORSet, elem: string, tags: string[]) {
+  const e = set[elem] ?? { a: [], r: [] };
+  for (const t of tags) e.r = uniq(e.r, t);
+  set[elem] = e;
+}
 export function orMerge(into: ORSet, other: ORSet) {
   for (const [elem, oe] of Object.entries(other)) {
     const e = into[elem] ?? { a: [], r: [] };
