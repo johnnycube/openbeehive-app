@@ -12,6 +12,13 @@ type Req = { id: number; method: 'open' | 'exec' | 'all'; sql?: string; params?:
 
 let dbName = 'openbeehive.sqlite3';
 let dbPromise: Promise<any> | null = null;
+let pool: any = null;
+
+// The pool's slot count caps how many files SQLite can hold open — per-tenant
+// db files PLUS their journals/temp files. Too few slots fail writes with
+// SQLITE_CANTOPEN when the journal can't get a slot. Slots are cheap (empty
+// OPFS files), so reserve plenty.
+const MIN_POOL_CAPACITY = 24;
 
 async function getDb() {
   if (!dbPromise) {
@@ -20,12 +27,11 @@ async function getDb() {
       try {
         // Persistent: OPFS SAHPool VFS (no SharedArrayBuffer / cross-origin
         // isolation required — works behind any reverse proxy).
-        // initialCapacity: the pool's slot count caps how many files SQLite
-        // can hold open — per-tenant db files PLUS their journals/temp files.
-        // The default (6) exhausts on the first write once a device has a few
-        // tenants, failing with SQLITE_CANTOPEN when the journal can't get a
-        // slot. Slots are cheap (empty OPFS files), so reserve plenty.
-        const pool = await sqlite3.installOpfsSAHPoolVfs({ name: 'openbeehive', initialCapacity: 24 });
+        pool = await sqlite3.installOpfsSAHPoolVfs({ name: 'openbeehive', initialCapacity: MIN_POOL_CAPACITY });
+        // initialCapacity only applies when the pool is first created; a pool
+        // that already exists on the device keeps its old (possibly smaller)
+        // capacity. Grow it explicitly so upgraded installs get the slots too.
+        await pool.reserveMinimumCapacity(MIN_POOL_CAPACITY);
         return new pool.OpfsSAHPoolDb('/' + dbName);
       } catch (err) {
         // OPFS is unavailable in some environments — notably Firefox Private
@@ -42,6 +48,15 @@ async function getDb() {
   return dbPromise;
 }
 
+// Run a query; if the pool has no free slot for the journal/temp file the
+// statement fails with SQLITE_CANTOPEN — grow the pool and retry once.
+function run(db: any, method: 'exec' | 'all', sql?: string, params?: unknown[]) {
+  if (method === 'all') {
+    return db.exec({ sql, bind: params, rowMode: 'object', returnValue: 'resultRows' });
+  }
+  db.exec({ sql, bind: params });
+}
+
 self.onmessage = async (e: MessageEvent<Req>) => {
   const { id, method, sql, params, name } = e.data;
   try {
@@ -51,13 +66,18 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       return;
     }
     const db = await getDb();
-    if (method === 'all') {
-      const rows = db.exec({ sql, bind: params, rowMode: 'object', returnValue: 'resultRows' });
-      (self as unknown as Worker).postMessage({ id, ok: true, rows });
-    } else {
-      db.exec({ sql, bind: params });
-      (self as unknown as Worker).postMessage({ id, ok: true });
+    let rows: unknown;
+    try {
+      rows = run(db, method, sql, params);
+    } catch (err) {
+      if (pool && /SQLITE_CANTOPEN/.test(String((err as Error)?.message ?? err))) {
+        await pool.addCapacity(8);
+        rows = run(db, method, sql, params);
+      } else {
+        throw err;
+      }
     }
+    (self as unknown as Worker).postMessage(method === 'all' ? { id, ok: true, rows } : { id, ok: true });
   } catch (err) {
     (self as unknown as Worker).postMessage({ id, ok: false, error: String((err as Error)?.message ?? err) });
   }
