@@ -18,7 +18,9 @@
   let map: any = null;
   let L: any = null;
   let marker: any = null;
-  let busy = $state(false);
+  // Lookup feedback shown under the map: idle (hint) | searching | found |
+  // none (service knows no match) | unreachable (offline / blocked).
+  let lookup = $state<'idle' | 'searching' | 'found' | 'none' | 'unreachable'>('idle');
 
   // The address value we last wrote ourselves (reverse geocode). Seeing it
   // again in the effect means "not user input" — do not geocode it back.
@@ -48,11 +50,14 @@
   async function pinMoved(a: number, b: number) {
     lat = +a.toFixed(6);
     lng = +b.toFixed(6);
-    busy = true;
-    const label = (await reverseGeocode(lat, lng)) ?? fmtCoords(lat, lng);
+    lookup = 'searching';
+    const res = await reverseGeocode(lat, lng);
+    // No address for the spot (or no network): fall back to raw coordinates —
+    // the position itself is already set either way.
+    const label = res.status === 'found' ? res.value : fmtCoords(lat, lng);
     selfWritten = label;
     address = label;
-    busy = false;
+    lookup = res.status === 'unreachable' ? 'unreachable' : 'found';
   }
 
   // Coordinates changed from outside (numeric inputs, geolocation button) ->
@@ -72,13 +77,16 @@
     if (!map || a === selfWritten || a.trim().length < 3) return;
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
-      busy = true;
-      const hit = await geocode(a);
-      busy = false;
-      if (!hit) return;
-      lat = +hit.lat.toFixed(6);
-      lng = +hit.lng.toFixed(6);
-      placeMarker(hit.lat, hit.lng);
+      lookup = 'searching';
+      const res = await geocode(a);
+      if (res.status !== 'found') {
+        lookup = res.status; // 'none' | 'unreachable' — tell the user, keep the pin
+        return;
+      }
+      lookup = 'found';
+      lat = +res.value.lat.toFixed(6);
+      lng = +res.value.lng.toFixed(6);
+      placeMarker(res.value.lat, res.value.lng);
     }, 700);
   });
 
@@ -107,15 +115,30 @@
 
 <div class="picker">
   <div class="map" bind:this={el}></div>
-  <p class="hint">
-    {#if busy}⌖ …{:else}{$_('apiaries.map_hint')}{/if}
-  </p>
+  {#if lookup === 'searching'}
+    <p class="hint busy"><span class="spin"></span> {$_('geo.searching')}</p>
+  {:else if lookup === 'none'}
+    <p class="hint warn">{$_('geo.not_found')}</p>
+  {:else if lookup === 'unreachable'}
+    <p class="hint warn">{$_('geo.unreachable')}</p>
+  {:else if lookup === 'found' && (lat || lng)}
+    <p class="hint ok">✓ {$_('geo.found', { values: { pos: fmtCoords(lat, lng) } })}</p>
+  {:else}
+    <p class="hint">{$_('apiaries.map_hint')}</p>
+  {/if}
 </div>
 
 <style>
   .map { height: 240px; width: 100%; border-radius: 12px; overflow: hidden;
     border: 1px solid var(--line); z-index: 0; }
   .hint { color: var(--ink-soft); font-size: .8rem; margin: 6px 2px 0; }
+  .hint.warn { color: #a8562e; }
+  .hint.ok { color: #41502f; }
+  .hint.busy { display: flex; align-items: center; gap: 6px; }
+  .spin { width: 11px; height: 11px; border-radius: 50%; flex: none;
+    border: 2px solid var(--line); border-top-color: var(--honey, #c77f22);
+    animation: obh-spin .7s linear infinite; }
+  @keyframes obh-spin { to { transform: rotate(360deg); } }
   :global(.obh-pin span) {
     display: block; width: 20px; height: 20px; border-radius: 50% 50% 50% 0;
     background: var(--honey, #c77f22); border: 2px solid #fffdf7; transform: rotate(-45deg);
