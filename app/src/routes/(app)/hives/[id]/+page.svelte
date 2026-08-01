@@ -690,8 +690,11 @@
   h3 { font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft);
     margin-top: 6px; font-weight: 700; }
   .acts { display: flex; gap: 8px; flex-shrink: 0; }
+  /* .icon sits on <a> and <button> alike — center the glyph explicitly, since
+     anchors have no default centering and buttons differ per browser. */
   .icon { width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 10px;
-    background: var(--cream2); cursor: pointer; font-size: 1rem; color: var(--ink); }
+    background: var(--cream2); cursor: pointer; font-size: 1rem; color: var(--ink);
+    display: grid; place-items: center; padding: 0; line-height: 1; text-decoration: none; }
   .icon.danger:hover { border-color: #d9a59b; color: #b5402f; }
 
   section { margin-top: 26px; }
