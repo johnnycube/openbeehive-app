@@ -14,6 +14,8 @@
   let note = $state('');
   let lat = $state(0);
   let lng = $state(0);
+  let saving = $state(false);
+  let saveError = $state('');
 
   async function load() {
     rows = await apiaries.list();
@@ -24,16 +26,25 @@
   }
 
   async function create() {
-    if (!name.trim()) return;
-    await apiaries.create({
-      organization_id: localStorage.getItem('obh.orgId') ?? 'local',
-      name: name.trim(), address: address.trim(), note: note.trim(),
-      lat: lat || 0, lng: lng || 0
-    });
-    name = address = note = '';
-    lat = lng = 0;
-    showForm = false;
-    await load();
+    if (!name.trim() || saving) return;
+    saving = true;
+    saveError = '';
+    try {
+      await apiaries.create({
+        organization_id: localStorage.getItem('obh.orgId') ?? 'local',
+        name: name.trim(), address: address.trim(), note: note.trim(),
+        lat: lat || 0, lng: lng || 0
+      });
+      // Success: clear and close. On failure the input stays so nothing is lost.
+      name = address = note = '';
+      lat = lng = 0;
+      showForm = false;
+      await load();
+    } catch (e) {
+      saveError = (e as Error)?.message ?? String(e);
+    } finally {
+      saving = false;
+    }
   }
 
   $effect(() => { $dataVersion; load(); });
@@ -51,9 +62,14 @@
       <input bind:value={address} placeholder={$_('apiaries.address')} />
       <input bind:value={note} placeholder={$_('apiaries.note')} />
       <LocationPicker bind:lat bind:lng bind:address />
+      {#if saveError}
+        <p class="error" role="alert">{$_('common.save_failed', { values: { msg: saveError } })}</p>
+      {/if}
       <div class="actions">
         <button type="button" class="ghost" onclick={() => (showForm = false)}>{$_('common.cancel')}</button>
-        <button type="submit" class="primary" disabled={!name.trim()}>{$_('common.save')}</button>
+        <button type="submit" class="primary" disabled={!name.trim() || saving}>
+          {saving ? $_('common.saving') : $_('common.save')}
+        </button>
       </div>
     </form>
   {/if}
@@ -102,6 +118,8 @@
   .form input { font: inherit; padding: 11px 13px; border: 1px solid var(--line); border-radius: 10px;
     background: #fff; color: var(--ink); }
   .form .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+  .form .error { color: #a03d2a; background: rgba(160,61,42,.08); border: 1px solid rgba(160,61,42,.25);
+    border-radius: 10px; padding: 9px 12px; font-size: .85rem; }
   .list { list-style: none; display: grid; gap: 12px; }
   .list li a { display: flex; align-items: center; gap: 14px; padding: 14px 16px;
     text-decoration: none; color: var(--ink); }

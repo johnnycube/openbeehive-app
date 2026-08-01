@@ -356,7 +356,9 @@
     "edit": "Bearbeiten",
     "kg": "kg",
     "back": "Zurück",
-    "confirm_delete": "Wirklich löschen? Das kann nicht rückgängig gemacht werden."
+    "confirm_delete": "Wirklich löschen? Das kann nicht rückgängig gemacht werden.",
+    "saving": "Wird gespeichert…",
+    "save_failed": "Speichern fehlgeschlagen: {msg}"
   },
   "pk": {
     "title": "Passkeys",
@@ -371,5 +373,11 @@
     "delete": "Entfernen",
     "delete_confirm": "Diesen Passkey entfernen? Eine Anmeldung damit ist dann nicht mehr möglich.",
     "not_supported": "Dieser Browser unterstützt keine Passkeys."
+  },
+  "geo": {
+    "searching": "Adresse wird gesucht…",
+    "not_found": "Keine Übereinstimmung für diese Adresse — setze stattdessen den Pin auf der Karte.",
+    "unreachable": "Die Adresssuche ist gerade nicht erreichbar — prüfe die Verbindung oder setze den Pin auf der Karte.",
+    "found": "Standort gesetzt ({pos})"
   }
 }

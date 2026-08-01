@@ -356,7 +356,9 @@
     "edit": "Modifica",
     "kg": "kg",
     "back": "Indietro",
-    "confirm_delete": "Eliminare questo? L'operazione non può essere annullata."
+    "confirm_delete": "Eliminare questo? L'operazione non può essere annullata.",
+    "saving": "Salvataggio…",
+    "save_failed": "Salvataggio non riuscito: {msg}"
   },
   "pk": {
     "title": "Passkeys",
@@ -371,5 +373,11 @@
     "delete": "Rimuovi",
     "delete_confirm": "Rimuovere questa passkey? Non potrai più accedere con essa.",
     "not_supported": "Questo browser non supporta le passkey."
+  },
+  "geo": {
+    "searching": "Ricerca dell’indirizzo…",
+    "not_found": "Nessuna corrispondenza per questo indirizzo: posiziona il segnaposto sulla mappa.",
+    "unreachable": "La ricerca dell’indirizzo non è al momento disponibile: controlla la connessione o posiziona il segnaposto sulla mappa.",
+    "found": "Posizione impostata ({pos})"
   }
 }

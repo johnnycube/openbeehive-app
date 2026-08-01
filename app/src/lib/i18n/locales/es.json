@@ -356,7 +356,9 @@
     "edit": "Editar",
     "kg": "kg",
     "back": "Atrás",
-    "confirm_delete": "¿Eliminar esto? Esta acción no se puede deshacer."
+    "confirm_delete": "¿Eliminar esto? Esta acción no se puede deshacer.",
+    "saving": "Guardando…",
+    "save_failed": "No se pudo guardar: {msg}"
   },
   "pk": {
     "title": "Passkeys",
@@ -371,5 +373,11 @@
     "delete": "Eliminar",
     "delete_confirm": "¿Eliminar esta passkey? Ya no podrás iniciar sesión con ella.",
     "not_supported": "Este navegador no admite passkeys."
+  },
+  "geo": {
+    "searching": "Buscando la dirección…",
+    "not_found": "Sin coincidencias para esta dirección; coloca el pin en el mapa.",
+    "unreachable": "La búsqueda de direcciones no está disponible ahora; comprueba la conexión o coloca el pin en el mapa.",
+    "found": "Ubicación establecida ({pos})"
   }
 }

@@ -356,7 +356,9 @@
     "edit": "Edit",
     "kg": "kg",
     "back": "Back",
-    "confirm_delete": "Delete this? This cannot be undone."
+    "confirm_delete": "Delete this? This cannot be undone.",
+    "saving": "Saving…",
+    "save_failed": "Could not save: {msg}"
   },
   "pk": {
     "title": "Passkeys",
@@ -371,5 +373,11 @@
     "delete": "Remove",
     "delete_confirm": "Remove this passkey? You can no longer sign in with it.",
     "not_supported": "This browser does not support passkeys."
+  },
+  "geo": {
+    "searching": "Looking up the address…",
+    "not_found": "No match for this address — drop the pin on the map instead.",
+    "unreachable": "Address search is unavailable right now — check your connection or drop the pin on the map.",
+    "found": "Location set ({pos})"
   }
 }

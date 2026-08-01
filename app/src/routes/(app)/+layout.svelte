@@ -5,6 +5,9 @@
   import { goto } from '$app/navigation';
   import { startSync } from '$lib/local/sync';
   import NavIcon from '$lib/components/NavIcon.svelte';
+  import Toasts from '$lib/components/Toasts.svelte';
+  import { toast } from '$lib/toast';
+  import { get } from 'svelte/store';
 
   const api = (import.meta.env.BEEHIVE_API_URL ?? '').replace(/\/$/, '');
   async function fetchJSON(path: string, opts: RequestInit = {}) {
@@ -29,6 +32,15 @@
     const off = () => (online = false);
     addEventListener('online', on);
     addEventListener('offline', off);
+
+    // Safety net: a failed local write whose promise nobody catches must never
+    // die silently (the classic symptom: a button that "does nothing"). Show
+    // the error, so the user knows the action did not stick.
+    const onRejection = (e: PromiseRejectionEvent) => {
+      const msg = String((e.reason as Error)?.message ?? e.reason ?? 'unknown error');
+      toast(get(_)('common.save_failed', { values: { msg } }));
+    };
+    addEventListener('unhandledrejection', onRejection);
 
     // Resolve the session before starting sync. Without this an unauthenticated
     // visitor to a cloud/demo instance would land in an empty shell while the
@@ -87,7 +99,11 @@
       startSync(); // start background sync once a session (or single-user identity) is established
     })();
 
-    return () => { removeEventListener('online', on); removeEventListener('offline', off); };
+    return () => {
+      removeEventListener('online', on);
+      removeEventListener('offline', off);
+      removeEventListener('unhandledrejection', onRejection);
+    };
   });
 
   // Main navigation. Settings lives separately, as the account block at the
@@ -149,6 +165,8 @@
     </main>
   </div>
 </div>
+
+<Toasts />
 
 <!-- Mobile bottom tab bar -->
 <nav class="tabbar">
