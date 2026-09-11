@@ -5,6 +5,35 @@ All notable changes to the Openbeehive application are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-09-11
+
+### Added
+
+- **Skeletons and a syncing hint instead of premature empty states:** on
+  refresh, pages showed "create your first apiary" (and the dashboard hard
+  zeros) before the first local read, and kept showing it while a fresh device
+  was still downloading its data. The dashboard and the apiary, hive and task
+  lists now render shimmering skeletons while the local read is pending, a
+  "Syncing your data…" hint while the first pull is still outstanding, and the
+  real empty state only once the data is known to be authoritative.
+- **Progressive first sync:** a new initial-sync state tracks whether this
+  device holds a full replica yet, and pulls refresh open pages after every
+  applied batch instead of once at the end, so a large first sync fills the
+  screen as it arrives.
+
+### Fixed
+
+- **Reloads no longer start from an empty store:** installing the OPFS storage
+  pool can race the previous worker that still holds its access handles; the
+  install is now retried briefly before falling back to in-memory storage, and
+  when the fallback does happen (private browsing, a second tab holding the
+  pool) a toast says that changes will not persist on this device instead of a
+  console warning nobody sees.
+- **Faster start after a reload:** the auth session is resolved with parallel
+  requests, so background sync — and the first data on a fresh device —
+  begins one round-trip earlier.
+- Action icons on the hive page are centered again.
+
 ## [0.2.2] - 2026-08-01
 
 ### Fixed
