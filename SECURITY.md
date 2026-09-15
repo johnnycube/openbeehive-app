@@ -5,10 +5,10 @@
 Openbeehive is in early development. Security fixes are provided for the latest
 released version only.
 
-| Version | Supported |
-| ------- | --------- |
-| 0.1.x   | ✅        |
-| < 0.1   | ❌        |
+| Version        | Supported |
+| -------------- | --------- |
+| latest release | ✅        |
+| older releases | ❌        |
 
 ## Reporting a vulnerability
 
@@ -26,8 +26,5 @@ Please include:
 - steps to reproduce (a proof of concept if possible),
 - affected version(s) and deployment profile (`cloud` or `selfhost`).
 
-We aim to acknowledge reports within **72 hours** and to provide a remediation
-timeline after triage. We will keep you informed throughout the process and
-credit you in the advisory unless you prefer to remain anonymous.
-
-Thank you for helping keep Openbeehive and its users safe.
+Reports are triaged privately; a fix and an advisory follow once the issue is
+confirmed. Reporters are credited in the advisory unless they prefer not to be.

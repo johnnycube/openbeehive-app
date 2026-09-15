@@ -1,7 +1,7 @@
 # Contributing to Openbeehive
 
-Thanks for your interest in improving Openbeehive! This is the **application**
-repository (Go backend + SvelteKit PWA). The website and documentation live in
+This is the **application** repository (Go backend + SvelteKit PWA). The
+website and documentation live in
 [`openbeehive-site`](https://github.com/johnnycube/openbeehive-site) and
 [`openbeehive-docs`](https://github.com/johnnycube/openbeehive-docs).
 
