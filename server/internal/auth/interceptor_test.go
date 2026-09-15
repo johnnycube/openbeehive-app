@@ -46,6 +46,9 @@ func TestReadOnlyGuardAllowsDemoReads(t *testing.T) {
 		"/openbeehive.v1.ApiaryService/ListApiaries",
 		"/openbeehive.v1.ApiaryService/GetApiary",
 		"/openbeehive.v1.SyncService/Subscribe",
+		"/openbeehive.v1.InspectionService/ListInspections",
+		"/openbeehive.v1.StatsService/GetDashboard",
+		"/openbeehive.v1.StatsService/GetHoneyStats",
 	} {
 		if err := callGuard(ctx, proc); err != nil {
 			t.Fatalf("%s: demo read must pass, got %v", proc, err)
@@ -54,7 +57,7 @@ func TestReadOnlyGuardAllowsDemoReads(t *testing.T) {
 }
 
 func TestReadOnlyGuardAllowsNormalUsers(t *testing.T) {
-	for _, role := range []string{"owner", "imker", "viewer", ""} {
+	for _, role := range []string{"admin", "user", ""} {
 		ctx := WithIdentity(context.Background(), Identity{UserID: "u", OrgID: "o", Role: role})
 		if err := callGuard(ctx, "/openbeehive.v1.SyncService/Push"); err != nil {
 			t.Fatalf("role %q: write must pass, got %v", role, err)

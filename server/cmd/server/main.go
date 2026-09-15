@@ -127,14 +127,23 @@ func main() {
 	// --- Connect-RPC handlers ---
 	opts := connect.WithInterceptors(interceptors...)
 
-	mux.Handle(openbeehivev1connect.NewApiaryServiceHandler(
-		service.NewApiaryService(store.Apiaries()), opts))
-	mux.Handle(openbeehivev1connect.NewHiveServiceHandler(
-		service.NewHiveService(store.Hives()), opts))
-	// Offline sync: central push/pull endpoint (main write path).
+	// One clock for every server-side write, shared with the sync endpoint.
 	hlc := wsync.NewHLC(cfg.Sync.NodeID)
+	// Offline sync: central push/pull endpoint (the app's write path).
 	mux.Handle(openbeehivev1connect.NewSyncServiceHandler(
 		service.NewSyncService(store.DB(), hlc), opts))
+	// CRUD services for scripts and integrations. Their writes go through the
+	// same merge + change log as Push, so they show up on devices.
+	w := service.NewWriter(store.DB(), hlc)
+	mux.Handle(openbeehivev1connect.NewApiaryServiceHandler(service.NewApiaryService(store.Apiaries(), w), opts))
+	mux.Handle(openbeehivev1connect.NewHiveServiceHandler(service.NewHiveService(store.Hives(), w), opts))
+	mux.Handle(openbeehivev1connect.NewQueenServiceHandler(service.NewQueenService(w), opts))
+	mux.Handle(openbeehivev1connect.NewInspectionServiceHandler(service.NewInspectionService(w), opts))
+	mux.Handle(openbeehivev1connect.NewTaskServiceHandler(service.NewTaskService(w), opts))
+	mux.Handle(openbeehivev1connect.NewTreatmentServiceHandler(service.NewTreatmentService(w), opts))
+	mux.Handle(openbeehivev1connect.NewHarvestServiceHandler(service.NewHarvestService(w), opts))
+	mux.Handle(openbeehivev1connect.NewEventServiceHandler(service.NewEventService(w), opts))
+	mux.Handle(openbeehivev1connect.NewStatsServiceHandler(service.NewStatsService(w), opts))
 
 	// FS blob serving in self-host mode (files only, no directory listings).
 	if cfg.Blob.Backend == config.BlobFS {

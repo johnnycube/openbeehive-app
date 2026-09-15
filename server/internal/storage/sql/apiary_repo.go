@@ -42,7 +42,7 @@ func (r *apiaryRepo) List(ctx context.Context, orgID string, limit, offset int) 
 	}
 	var total int
 	_ = r.s.db.GetContext(ctx, &total, r.s.db.Rebind(
-		`SELECT COUNT(*) FROM apiary WHERE organization_id = ?`), orgID)
+		`SELECT COUNT(*) FROM apiary WHERE organization_id = ? AND deleted = FALSE`), orgID)
 	return out, total, nil
 }
 
@@ -60,11 +60,11 @@ func (r *apiaryRepo) Delete(ctx context.Context, orgID, id string) error {
 func (r *apiaryRepo) HiveCount(ctx context.Context, orgID, apiaryID string) (int, error) {
 	var n int
 	err := r.s.db.GetContext(ctx, &n, r.s.db.Rebind(
-		`SELECT COUNT(*) FROM hive WHERE organization_id = ? AND apiary_id = ?`), orgID, apiaryID)
+		`SELECT COUNT(*) FROM hive WHERE organization_id = ? AND apiary_id = ? AND deleted = FALSE`), orgID, apiaryID)
 	return n, err
 }
 
-// --- Hive repo (abridged; follows the same pattern) ---
+// --- Hive repo ---
 
 type hiveRepo struct{ s *Store }
 

@@ -2,13 +2,17 @@
 // generated protobuf types and the storage models and enforce tenant
 // isolation via the identity from the context.
 //
-// Note: the imports from internal/gen are produced by `make proto`
-// (buf generate). All further services (Hive, Queen, Inspection,
-// Task, Stats) follow exactly this pattern.
+// Reads go to the tables directly; every write goes through Writer, i.e.
+// through the same merge and change log as SyncService.Push, so API writes
+// reach devices and merge with theirs.
+//
+// The imports from internal/gen are produced by `make proto` (buf generate).
 package service
 
 import (
 	"context"
+	"errors"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
@@ -26,10 +30,11 @@ import (
 type ApiaryService struct {
 	openbeehivev1connect.UnimplementedApiaryServiceHandler
 	repo storage.ApiaryRepo
+	w    *Writer
 }
 
-func NewApiaryService(repo storage.ApiaryRepo) *ApiaryService {
-	return &ApiaryService{repo: repo}
+func NewApiaryService(repo storage.ApiaryRepo, w *Writer) *ApiaryService {
+	return &ApiaryService{repo: repo, w: w}
 }
 
 func (s *ApiaryService) CreateApiary(
@@ -42,20 +47,22 @@ func (s *ApiaryService) CreateApiary(
 	if req.Msg.Name == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errEmptyName)
 	}
-	now := time.Now().UTC()
-	m := &storage.Apiary{
-		ID:        uuid.NewString(),
-		OrgID:     id.OrgID,
-		Name:      req.Msg.Name,
-		Address:      req.Msg.Address,
-		Lat:       req.Msg.Lat,
-		Lng:       req.Msg.Lng,
-		Note:     req.Msg.Note,
-		CreatedAt: now,
-		UpdatedAt: now,
+	aid := uuid.NewString()
+	now := jsTimeNow()
+	// scope = own id: a new apiary opens its own sync scope, as in the app.
+	err := s.w.Run(ctx, id, func(t *txWriter) error {
+		return t.upsert("apiary", aid, aid, map[string]any{
+			"organization_id": id.OrgID, "name": req.Msg.Name, "address": req.Msg.Address,
+			"lat": req.Msg.Lat, "lng": req.Msg.Lng, "note": req.Msg.Note,
+			"created_at": now, "updated_at": now, "deleted": 0,
+		})
+	})
+	if err != nil {
+		return nil, writeErr(err)
 	}
-	if err := s.repo.Create(ctx, m); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	m, err := s.repo.Get(ctx, id.OrgID, aid)
+	if err != nil {
+		return nil, mapErr(err)
 	}
 	return connect.NewResponse(&wv1.CreateApiaryResponse{Apiary: toProto(m, 0)}), nil
 }
@@ -88,7 +95,7 @@ func (s *ApiaryService) ListApiaries(
 	}
 	return connect.NewResponse(&wv1.ListApiariesResponse{
 		Apiaries: out,
-		Page:      &wv1.PageResponse{Total: int32(total)},
+		Page:     pageResponse(total, offset, len(rows), limit),
 	}), nil
 }
 
@@ -96,61 +103,97 @@ func (s *ApiaryService) UpdateApiary(
 	ctx context.Context, req *connect.Request[wv1.UpdateApiaryRequest],
 ) (*connect.Response[wv1.UpdateApiaryResponse], error) {
 	id, _ := auth.FromContext(ctx)
+	if _, err := s.repo.Get(ctx, id.OrgID, req.Msg.Id); err != nil {
+		return nil, mapErr(err)
+	}
+	err := s.w.Run(ctx, id, func(t *txWriter) error {
+		return t.upsert("apiary", req.Msg.Id, req.Msg.Id, map[string]any{
+			"name": req.Msg.Name, "address": req.Msg.Address, "lat": req.Msg.Lat, "lng": req.Msg.Lng,
+			"note": req.Msg.Note, "updated_at": jsTimeNow(),
+		})
+	})
+	if err != nil {
+		return nil, writeErr(err)
+	}
 	m, err := s.repo.Get(ctx, id.OrgID, req.Msg.Id)
 	if err != nil {
 		return nil, mapErr(err)
 	}
-	m.Name, m.Address, m.Lat, m.Lng, m.Note = req.Msg.Name, req.Msg.Address, req.Msg.Lat, req.Msg.Lng, req.Msg.Note
-	m.UpdatedAt = time.Now().UTC()
-	if err := s.repo.Update(ctx, m); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	return connect.NewResponse(&wv1.UpdateApiaryResponse{Apiary: toProto(m, 0)}), nil
+	cnt, _ := s.repo.HiveCount(ctx, id.OrgID, m.ID)
+	return connect.NewResponse(&wv1.UpdateApiaryResponse{Apiary: toProto(m, cnt)}), nil
 }
 
+// DeleteApiary soft-deletes the apiary (like the app). Its hives keep their
+// rows and stay reachable through the API and sync.
 func (s *ApiaryService) DeleteApiary(
 	ctx context.Context, req *connect.Request[wv1.DeleteApiaryRequest],
 ) (*connect.Response[wv1.DeleteApiaryResponse], error) {
 	id, _ := auth.FromContext(ctx)
-	if err := s.repo.Delete(ctx, id.OrgID, req.Msg.Id); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	if _, err := s.repo.Get(ctx, id.OrgID, req.Msg.Id); err != nil {
+		return nil, mapErr(err)
+	}
+	err := s.w.Run(ctx, id, func(t *txWriter) error {
+		return t.del("apiary", req.Msg.Id, req.Msg.Id)
+	})
+	if err != nil {
+		return nil, writeErr(err)
 	}
 	return connect.NewResponse(&wv1.DeleteApiaryResponse{}), nil
 }
 
-// --- Helfer ---
+// --- Helpers ---
 
-func toProto(m *storage.Apiary, hivesAnzahl int) *wv1.Apiary {
+func toProto(m *storage.Apiary, hiveCount int) *wv1.Apiary {
 	return &wv1.Apiary{
 		Id:             m.ID,
 		OrganizationId: m.OrgID,
 		Name:           m.Name,
-		Address:           m.Address,
+		Address:        m.Address,
 		Lat:            m.Lat,
 		Lng:            m.Lng,
-		Note:          m.Note,
-		HiveCount:   int32(hivesAnzahl),
+		Note:           m.Note,
+		HiveCount:      int32(hiveCount),
 		CreatedAt:      timestamppb.New(m.CreatedAt),
 		UpdatedAt:      timestamppb.New(m.UpdatedAt),
 	}
 }
 
+// pageParams: page_size (default 50, max 500) and page_token as a decimal
+// offset, as returned in PageResponse.next_page_token.
 func pageParams(p *wv1.PageRequest) (limit, offset int) {
-	if p == nil || p.PageSize <= 0 {
-		return 50, 0
+	limit = 50
+	if p != nil && p.PageSize > 0 {
+		limit = int(p.PageSize)
 	}
-	return int(p.PageSize), 0 // add cursor logic here
+	if limit > 500 {
+		limit = 500
+	}
+	if p != nil && p.PageToken != "" {
+		offset, _ = strconv.Atoi(p.PageToken)
+		if offset < 0 {
+			offset = 0
+		}
+	}
+	return limit, offset
 }
 
+// pageResponse reports the total and the token for the next page ("" when
+// this page was the last one).
+func pageResponse(total, offset, got, limit int) *wv1.PageResponse {
+	r := &wv1.PageResponse{Total: int32(total)}
+	if got == limit && offset+got < total {
+		r.NextPageToken = strconv.Itoa(offset + got)
+	}
+	return r
+}
+
+func jsTimeNow() string { return jsTime(time.Now()) }
+
 func mapErr(err error) error {
-	if err == storage.ErrNotFound {
+	if errors.Is(err, storage.ErrNotFound) {
 		return connect.NewError(connect.CodeNotFound, err)
 	}
 	return connect.NewError(connect.CodeInternal, err)
 }
 
-type sentinel string
-
-func (e sentinel) Error() string { return string(e) }
-
-var errEmptyName = sentinel("name must not be empty")
+var errEmptyName = errors.New("name must not be empty")

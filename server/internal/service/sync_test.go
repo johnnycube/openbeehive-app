@@ -22,6 +22,12 @@ import (
 // suite against a live Postgres or MySQL instead (the schema is wiped!).
 func newSyncFixture(t *testing.T) *SyncService {
 	t.Helper()
+	return NewSyncService(newFixtureStore(t).DB(), wsync.NewHLC("test"))
+}
+
+// newFixtureStore opens and seeds the store behind newSyncFixture.
+func newFixtureStore(t *testing.T) *sqlstore.Store {
+	t.Helper()
 	cfg := &config.Config{Profile: "selfhost"}
 	cfg.DB.Driver = config.DriverSQLite
 	cfg.DB.DSN = "file:" + filepath.Join(t.TempDir(), "sync.db")
@@ -52,7 +58,7 @@ func newSyncFixture(t *testing.T) *SyncService {
 			t.Fatalf("seed: %v", err)
 		}
 	}
-	return NewSyncService(db, wsync.NewHLC("test"))
+	return store
 }
 
 // resetSchema empties a live test database so every test starts blank.
