@@ -83,7 +83,7 @@ func randToken() string {
 }
 
 // LoginHandler starts the OIDC auth-code flow: GET /auth/login?provider=google
-func (m *Manager) LoginHandler(_ *SessionManager) http.HandlerFunc {
+func (m *Manager) LoginHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		provider := r.URL.Query().Get("provider")
 		if provider == "" {
@@ -157,7 +157,9 @@ var errInviteOnly = errors.New("this instance is invite-only — ask for an invi
 
 // provisionOIDCUser finds the in-app account for an OIDC login: by provider
 // subject, then by matching email (linking an existing email/password profile),
-// otherwise it registers a new account (the first account is the instance admin).
+// otherwise it registers a new account. Provisioning never grants admin; the
+// instance admin comes from BEEHIVE_ADMIN_EMAIL / BEEHIVE_ADMIN_PASSWORD
+// (auth.EnsureAdmin).
 func provisionOIDCUser(ctx context.Context, users storage.UserRepo, prov *Provisioner, cfg *config.Config, provider string, c *Claims) (*storage.User, error) {
 	subject := provider + ":" + c.Subject
 	if u, err := users.GetBySubject(ctx, subject); err == nil {
@@ -172,7 +174,6 @@ func provisionOIDCUser(ctx context.Context, users storage.UserRepo, prov *Provis
 	}
 	// Invite-only instances provision no new accounts over OIDC (invites are a
 	// password-signup flow); existing accounts linked above sign in normally.
-	// Mirrors signup: provisioning never grants admin (see EnsureAdmin).
 	if !cfg.Auth.RegistrationOpen {
 		return nil, errInviteOnly
 	}
@@ -223,7 +224,7 @@ func (m *Manager) Exchange(ctx context.Context, provider, code string) (*Claims,
 	return m.verify(ctx, provider, raw)
 }
 
-// verify checks a raw ID token (also used by the interceptor).
+// verify checks a raw ID token against the provider and returns its claims.
 func (m *Manager) verify(ctx context.Context, provider, rawIDToken string) (*Claims, error) {
 	p, ok := m.providers[provider]
 	if !ok {

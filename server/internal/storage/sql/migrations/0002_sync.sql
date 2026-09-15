@@ -37,11 +37,12 @@ CREATE TABLE IF NOT EXISTS change_log (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_change_seq ON change_log (seq);
 CREATE INDEX IF NOT EXISTS idx_change_scope_seq ON change_log (scope_id, seq);
 
--- Apiary-sharing: wer darf welchen Apiary sehen/bearbeiten.
+-- Apiary sharing: which users may read or edit which apiary. Read by Pull
+-- scoping; nothing writes rows yet.
 CREATE TABLE IF NOT EXISTS apiary_share (
   apiary_id VARCHAR(64) NOT NULL,
   benutzer_id VARCHAR(64) NOT NULL,
-  role       TEXT NOT NULL DEFAULT 'imker', -- viewer | imker | owner
+  role       TEXT NOT NULL DEFAULT 'imker', -- reserved; no writer yet
   created_at  TIMESTAMP NOT NULL,
   PRIMARY KEY (apiary_id, benutzer_id)
 );

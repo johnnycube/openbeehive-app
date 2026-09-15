@@ -34,12 +34,6 @@ func (r userRow) model() *storage.User {
 	}
 }
 
-func (r *userRepo) Count(ctx context.Context) (int, error) {
-	var n int
-	err := r.s.db.GetContext(ctx, &n, r.s.db.Rebind(`SELECT COUNT(*) FROM users`))
-	return n, err
-}
-
 func (r *userRepo) GetByEmail(ctx context.Context, email string) (*storage.User, error) {
 	return r.getBy(ctx, `LOWER(email) = LOWER(?)`, email)
 }

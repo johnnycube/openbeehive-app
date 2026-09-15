@@ -127,7 +127,7 @@ func (t *TenantAPI) create(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, map[string]any{"error": "a tenant name is required"})
 		return
 	}
-	org := &storage.Organization{ID: uuid.NewString(), Name: name, Plan: "hobby", CreatedAt: time.Now().UTC()}
+	org := &storage.Organization{ID: uuid.NewString(), Name: name, CreatedAt: time.Now().UTC()}
 	if err := t.orgs.Create(r.Context(), org); err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		return

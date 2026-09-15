@@ -180,8 +180,8 @@ func coerceFields(spec entitySpec, fields map[string]any, driver string) {
 }
 
 type SyncService struct {
-	db   *sqlx.DB
-	hlc  *wsync.HLC
+	db  *sqlx.DB
+	hlc *wsync.HLC
 }
 
 func NewSyncService(db *sqlx.DB, hlc *wsync.HLC) *SyncService { return &SyncService{db: db, hlc: hlc} }
@@ -232,7 +232,7 @@ func (s *SyncService) Pull(
 		seqs = append(seqs, c.Seq)
 	}
 
-	// limit+1 abgefragt -> detects, ob more pages follow.
+	// limit+1 rows were requested so we can tell whether more pages follow.
 	hasMore := len(out) > limit
 	if hasMore {
 		out, seqs = out[:limit], seqs[:limit]
@@ -273,7 +273,6 @@ func (s *SyncService) Push(
 	}
 	defer tx.Rollback()
 
-	var conflicts []*wv1.Conflict
 	for _, ch := range req.Msg.Changes {
 		s.hlc.Recv(ch.Hlc) // sync clock with origin time
 
@@ -291,9 +290,9 @@ func (s *SyncService) Push(
 					fmt.Errorf("scope %q is not writable for this user", ch.ScopeId))
 			}
 		}
-		// Per-field-LWW + OR-Set-Merge. No row-level stale gate anymore:
-		// stale individual fields are dropped in applyChange, newer
-		// fields from other devices are preserved.
+		// Per-field LWW + OR-Set merge. There is no row-level stale gate:
+		// applyChange drops stale fields individually and keeps newer
+		// fields written by other devices.
 		if err := applyChange(ctx, tx, spec, ch, id.OrgID); err != nil {
 			if errors.Is(err, errWrongTenant) {
 				return nil, connect.NewError(connect.CodePermissionDenied, err)
@@ -304,14 +303,13 @@ func (s *SyncService) Push(
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 	}
-	_ = conflicts
 	var cursor int64
 	_ = tx.GetContext(ctx, &cursor, "SELECT val FROM seq_counter WHERE name = 'change'")
 	if err := tx.Commit(); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&wv1.PushResponse{
-		ServerCursor: seqToCursor(cursor), Conflicts: conflicts,
+		ServerCursor: seqToCursor(cursor), Conflicts: nil,
 	}), nil
 }
 
@@ -352,7 +350,7 @@ func (s *SyncService) Subscribe(
 var errWrongTenant = errors.New("change targets another tenant's data")
 
 // applyChange merges an incoming change field-by-field into the row:
-// Skalare per LWW (field-clock), Set-fielder per OR-Set-union.
+// scalars by LWW (field clock), set columns by OR-Set union.
 // orgID is the caller's active tenant: existing rows must belong to it, new
 // rows are stamped with it — a client cannot write into a foreign tenant, and
 // cannot move a row across tenants, no matter what its payload claims.

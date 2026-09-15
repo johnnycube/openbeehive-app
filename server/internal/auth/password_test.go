@@ -178,8 +178,8 @@ func TestEnsureAdmin(t *testing.T) {
 	if err := EnsureAdmin(ctx, store.Users(), cfg); err != nil {
 		t.Fatalf("ensure admin (2nd): %v", err)
 	}
-	if n, _ := store.Users().Count(ctx); n != 1 {
-		t.Fatalf("admin duplicated: %d users", n)
+	if again, err := store.Users().GetByEmail(ctx, "admin@test.dev"); err != nil || again.ID != u.ID {
+		t.Fatalf("admin not stable across boots: err=%v id=%q want %q", err, again.ID, u.ID)
 	}
 
 	// A changed env password wins on the next boot.

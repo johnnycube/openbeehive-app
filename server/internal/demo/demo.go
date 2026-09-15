@@ -82,7 +82,7 @@ func (s *Seeder) ensureAccount(ctx context.Context) error {
 		{`INSERT INTO users (id, email, name, oidc_subject, password_hash, role, email_verified, verification_token, created_at)
 		  VALUES (?, ?, ?, '', ?, 'user', TRUE, '', ?)`, []any{UserID, s.cfg.Demo.Email, "Demo Beekeeper", string(hash), now}},
 		{`DELETE FROM organization WHERE id = ?`, []any{OrgID}},
-		{`INSERT INTO organization (id, name, plan, created_at) VALUES (?, 'Demo apiaries', 'hobby', ?)`, []any{OrgID, now}},
+		{`INSERT INTO organization (id, name, created_at) VALUES (?, 'Demo apiaries', ?)`, []any{OrgID, now}},
 		{`DELETE FROM member WHERE organization_id = ?`, []any{OrgID}},
 		{`INSERT INTO member (organization_id, benutzer_id, role) VALUES (?, ?, 'owner')`, []any{OrgID, UserID}},
 	}
@@ -112,8 +112,8 @@ func (s *Seeder) Seed(ctx context.Context) error {
 
 	now := time.Now().UTC()
 	apiaries := []struct {
-		name, addr   string
-		lat, lng     float64
+		name, addr string
+		lat, lng   float64
 	}{
 		{"Orchard Meadow", "Apfelweg 3, 79341 Kenzingen", 48.193, 7.770},
 		{"Forest Edge", "Waldrand 12, 79261 Gutach", 48.108, 8.022},
@@ -151,7 +151,7 @@ func (s *Seeder) Seed(ctx context.Context) error {
 				"organization_id": OrgID, "apiary_id": apID, "name": fmt.Sprintf("Hive %d", hiveNo),
 				"type": hiveTypes[hiveNo%len(hiveTypes)], "status": 1, "boxes": 2 + hiveNo%3,
 				"colony_origin": pick(hiveNo, "swarm 2024", "split from Hive 2", "own rearing", "nucleus"),
-				"note": "", "created_at": iso(now.AddDate(-1, 0, 0)), "updated_at": iso(now), "deleted": 0,
+				"note":          "", "created_at": iso(now.AddDate(-1, 0, 0)), "updated_at": iso(now), "deleted": 0,
 			}); err != nil {
 				return err
 			}
@@ -265,16 +265,16 @@ func inspectionFields(hiveID string, date time.Time, hiveNo, idx int) map[string
 		"covered_larva": boolInt(!winter),
 		"temperament":   1 + (hiveNo+idx)%4, "calmness": 1 + (hiveNo+idx)%4,
 		"frames": frames, "brood_frames": brood, "stores": stores, "queen_cells": 0,
-		"varroa":           fmt.Sprintf("%d mites/day", varroaByMonth[m-1]+hiveNo%2),
-		"temp_hive":        round1(hiveTemp), "temp_outside": round1(outTemp),
-		"humidity_hive":    55 + (hiveNo+idx)%8, "humidity_outside": 60 + (hiveNo+idx)%25,
+		"varroa":    fmt.Sprintf("%d mites/day", varroaByMonth[m-1]+hiveNo%2),
+		"temp_hive": round1(hiveTemp), "temp_outside": round1(outTemp),
+		"humidity_hive": 55 + (hiveNo+idx)%8, "humidity_outside": 60 + (hiveNo+idx)%25,
 		"note": "", "created_at": iso(date), "deleted": 0,
 	}
 	switch {
 	case spring:
-		f["queen_cells"] = idx % 3                // swarm season
-		f["drone_frame_cut"] = boolInt(m >= 4)    // varroa drone-brood removal
-		f["super_added"] = boolInt(m >= 4)        // give room for the flow
+		f["queen_cells"] = idx % 3             // swarm season
+		f["drone_frame_cut"] = boolInt(m >= 4) // varroa drone-brood removal
+		f["super_added"] = boolInt(m >= 4)     // give room for the flow
 		f["frames_added"] = 1 + idx%2
 		f["weight_kg"] = round1(34 + float64(hiveNo%5))
 	case summer:
@@ -284,7 +284,7 @@ func inspectionFields(hiveID string, date time.Time, hiveNo, idx int) map[string
 		}
 		f["weight_kg"] = round1(42 + float64(hiveNo%7))
 	case autumn:
-		f["fed_kg"] = round1(3 + float64(hiveNo%3))       // build winter stores
+		f["fed_kg"] = round1(3 + float64(hiveNo%3)) // build winter stores
 		f["frames_removed"] = 1
 		f["weight_kg"] = round1(35 + float64(hiveNo%5))
 	case winter:

@@ -5,23 +5,15 @@ package blob
 import (
 	"context"
 	"fmt"
-	"io"
-	"time"
 
 	"github.com/johnnycube/openbeehive-app/server/internal/config"
 )
 
+// Store is the object-store surface the server uses. Photos are addressed by
+// the keys synced in inspection.photo_keys; the server only deletes them
+// (tenant purge). Self-host serves FS blobs from /files/ directly.
 type Store interface {
-	// Put stores an object and returns its key.
-	Put(ctx context.Context, key, contentType string, r io.Reader, size int64) error
-	// Get returns the object for reading.
-	Get(ctx context.Context, key string) (io.ReadCloser, error)
 	Delete(ctx context.Context, key string) error
-	// PresignedPut creates a time-limited upload URL (direct upload
-	// from the browser, without load on the app server).
-	PresignedPut(ctx context.Context, key, contentType string, ttl time.Duration) (string, error)
-	// PublicURL for read access.
-	PublicURL(key string) string
 }
 
 func New(cfg *config.Config) (Store, error) {

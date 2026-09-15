@@ -83,7 +83,9 @@ func main() {
 		auth.NewTenantAPI(sessions, store.Users(), store.Orgs(), store.Members(), store.Invites(), prov, cfg, blobs).Routes(mux)
 	}
 
-	// Email + password onboarding (first account = admin; verification optional).
+	// Email + password sign-up (verification optional). The instance admin is
+	// not created here; auth.EnsureAdmin creates it from BEEHIVE_ADMIN_EMAIL /
+	// BEEHIVE_ADMIN_PASSWORD on boot.
 	if cfg.Auth.PasswordEnabled {
 		auth.NewPasswordAuth(store.Users(), store.Invites(), sessions, cfg, prov).Routes(mux)
 		log.Printf("auth: email/password onboarding enabled (verification=%v, open registration=%v)",
@@ -95,7 +97,7 @@ func main() {
 			log.Fatalf("oidc: %v", err)
 		}
 		log.Printf("auth: OIDC providers active: %v", am.Names())
-		mux.HandleFunc("/auth/login", am.LoginHandler(sessions))
+		mux.HandleFunc("/auth/login", am.LoginHandler())
 		// Callback provisions/links an in-app user record (by subject, then email).
 		mux.HandleFunc("/auth/callback", am.CallbackHandler(sessions, store.Users(), prov, cfg))
 	}

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// Format: "<ms:15>:<counter:5>:<nodeID>" — feste Breite => String-Sort = Zeit-Sort.
+// Format: "<ms:15>:<counter:5>:<nodeID>", fixed width so string order equals time order.
 type HLC struct {
 	mu      sync.Mutex
 	lastMS  int64

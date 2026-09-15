@@ -79,12 +79,12 @@ func Open(cfg *config.Config) (*Store, error) {
 }
 
 func (s *Store) Apiaries() storage.ApiaryRepo { return &apiaryRepo{s} }
-func (s *Store) Hives() storage.HiveRepo       { return &hiveRepo{s} }
-func (s *Store) Users() storage.UserRepo       { return &userRepo{s} }
-func (s *Store) Orgs() storage.OrgRepo         { return &orgRepo{s} }
-func (s *Store) Members() storage.MemberRepo   { return &memberRepo{s} }
-func (s *Store) Invites() storage.InviteRepo   { return &inviteRepo{s} }
-func (s *Store) Close() error                    { return s.db.Close() }
+func (s *Store) Hives() storage.HiveRepo      { return &hiveRepo{s} }
+func (s *Store) Users() storage.UserRepo      { return &userRepo{s} }
+func (s *Store) Orgs() storage.OrgRepo        { return &orgRepo{s} }
+func (s *Store) Members() storage.MemberRepo  { return &memberRepo{s} }
+func (s *Store) Invites() storage.InviteRepo  { return &inviteRepo{s} }
+func (s *Store) Close() error                 { return s.db.Close() }
 
 // DB exposes the sqlx handle (used by the sync service).
 func (s *Store) DB() *sqlx.DB { return s.db }

@@ -7,7 +7,7 @@ import (
 )
 
 // LocalUser is the fixed identity used in self-host single-user mode, i.e.
-// when no OIDC provider is configured. It lets the offline-first app work
+// when no auth method (OIDC, WebAuthn, password) is configured. It lets the offline-first app work
 // out of the box without a login flow: one beekeeper, one tenant.
 var LocalUser = Identity{
 	UserID: "local",

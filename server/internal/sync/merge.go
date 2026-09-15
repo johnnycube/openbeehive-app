@@ -32,7 +32,7 @@ func (fc FieldClock) Accept(field, incomingHLC string) bool {
 //
 // JSON representation: { "<element>": { "a": ["<tag>",...], "r": ["<tag>",...] } }
 // An element is visible while it has an add tag that has not been removed
-// (observed) wurde.
+// (observed).
 
 type ORSet map[string]struct {
 	A []string `json:"a"`
@@ -80,7 +80,7 @@ func (s ORSet) RemoveTags(elem string, tags []string) {
 	s[elem] = e
 }
 
-// Merge vereinigt zwei OR-Sets (kommutativ, idempotent).
+// Merge unions two OR-Sets (commutative, idempotent).
 func (s ORSet) Merge(other ORSet) {
 	for elem, oe := range other {
 		e := s[elem]

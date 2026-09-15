@@ -28,7 +28,7 @@ func (p *Provisioner) EnsurePersonalTenant(ctx context.Context, u *storage.User)
 	if name == "" {
 		name = "My apiaries"
 	}
-	org := &storage.Organization{ID: uuid.NewString(), Name: name, Plan: "hobby", CreatedAt: time.Now().UTC()}
+	org := &storage.Organization{ID: uuid.NewString(), Name: name, CreatedAt: time.Now().UTC()}
 	if err := p.orgs.Create(ctx, org); err != nil {
 		return "", err
 	}

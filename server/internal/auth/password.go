@@ -115,8 +115,6 @@ func (p *PasswordAuth) signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Sign-up never grants admin; the instance admin comes from EnsureAdmin.
-	role := "user"
-
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]any{"error": "hashing failed"})
@@ -124,7 +122,7 @@ func (p *PasswordAuth) signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u := &storage.User{
-		ID: uuid.NewString(), Email: req.Email, Name: req.Name, Role: role,
+		ID: uuid.NewString(), Email: req.Email, Name: req.Name, Role: "user",
 		PasswordHash: string(hash), CreatedAt: time.Now().UTC(),
 		EmailVerified: !p.cfg.Auth.EmailVerification, // verified immediately unless required
 	}
@@ -138,12 +136,12 @@ func (p *PasswordAuth) signup(w http.ResponseWriter, r *http.Request) {
 
 	if p.cfg.Auth.EmailVerification {
 		p.sendVerification(u.Email, u.VerifyToken)
-		respondJSON(w, http.StatusOK, map[string]any{"status": "verify", "admin": role == "admin"})
+		respondJSON(w, http.StatusOK, map[string]any{"status": "verify"})
 		return
 	}
 	org, _ := p.prov.EnsurePersonalTenant(r.Context(), u)
 	tok := p.issue(w, u, org)
-	respondJSON(w, http.StatusOK, map[string]any{"status": "ok", "admin": role == "admin", "name": u.Name, "token": tok, "user_id": u.ID, "active_org": org})
+	respondJSON(w, http.StatusOK, map[string]any{"status": "ok", "name": u.Name, "token": tok, "user_id": u.ID, "active_org": org})
 }
 
 func (p *PasswordAuth) signin(w http.ResponseWriter, r *http.Request) {

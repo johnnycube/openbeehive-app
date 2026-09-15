@@ -17,10 +17,10 @@ type Apiary struct {
 	ID        string    `db:"id"`
 	OrgID     string    `db:"organization_id"`
 	Name      string    `db:"name"`
-	Address      string    `db:"address"`
+	Address   string    `db:"address"`
 	Lat       float64   `db:"lat"`
 	Lng       float64   `db:"lng"`
-	Note     string    `db:"note"`
+	Note      string    `db:"note"`
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
@@ -28,19 +28,17 @@ type Apiary struct {
 type Hive struct {
 	ID           string    `db:"id"`
 	OrgID        string    `db:"organization_id"`
-	ApiaryID   string    `db:"apiary_id"`
+	ApiaryID     string    `db:"apiary_id"`
 	Name         string    `db:"name"`
-	Type          int32     `db:"type"`
+	Type         int32     `db:"type"`
 	Status       int32     `db:"status"`
-	Boxes       int32     `db:"boxes"`
+	Boxes        int32     `db:"boxes"`
 	ColonyOrigin string    `db:"colony_origin"`
-	Note        string    `db:"note"`
+	Note         string    `db:"note"`
 	QRCode       string    `db:"qr_code"`
 	CreatedAt    time.Time `db:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at"`
 }
-
-// (more Modelle: Queen, Inspection, Task, Treatment, Harvest – analog)
 
 // User is an account on the instance (email/password onboarding). The
 // instance admin is a dedicated account defined by BEEHIVE_ADMIN_EMAIL /
@@ -62,7 +60,6 @@ type User struct {
 type Organization struct {
 	ID        string    `db:"id"`
 	Name      string    `db:"name"`
-	Plan      string    `db:"plan"`
 	CreatedAt time.Time `db:"created_at"`
 }
 
@@ -90,10 +87,9 @@ type Invite struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
-// --- Repository-Interfaces ---
+// --- Repository interfaces ---
 
 type UserRepo interface {
-	Count(ctx context.Context) (int, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)
 	GetByID(ctx context.Context, id string) (*User, error)
 	GetBySubject(ctx context.Context, oidcSubject string) (*User, error)

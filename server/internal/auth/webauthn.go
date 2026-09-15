@@ -66,8 +66,8 @@ type waUser struct {
 	creds []webauthn.Credential
 }
 
-func (x *waUser) WebAuthnID() []byte    { return []byte(x.u.ID) }
-func (x *waUser) WebAuthnName() string  { return x.u.Email }
+func (x *waUser) WebAuthnID() []byte   { return []byte(x.u.ID) }
+func (x *waUser) WebAuthnName() string { return x.u.Email }
 func (x *waUser) WebAuthnDisplayName() string {
 	if x.u.Name != "" {
 		return x.u.Name
@@ -204,7 +204,7 @@ func (a *WebAuthn) enrollBegin(w http.ResponseWriter, r *http.Request) {
 	}
 	label := strings.TrimSpace(r.URL.Query().Get("name"))
 	a.storeChallenge(w, &waChallenge{data: session, label: label})
-	writeJSON(w, options)
+	respondJSON(w, http.StatusOK, options)
 }
 
 func (a *WebAuthn) enrollFinish(w http.ResponseWriter, r *http.Request) {
@@ -306,7 +306,7 @@ func (a *WebAuthn) loginBegin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.storeChallenge(w, &waChallenge{data: session})
-	writeJSON(w, options)
+	respondJSON(w, http.StatusOK, options)
 }
 
 func (a *WebAuthn) loginFinish(w http.ResponseWriter, r *http.Request) {
@@ -354,9 +354,4 @@ func (a *WebAuthn) loginFinish(w http.ResponseWriter, r *http.Request) {
 		"status": "ok", "admin": role == "admin", "name": account.Name, "email": account.Email,
 		"token": tok, "user_id": account.ID, "active_org": org,
 	})
-}
-
-func writeJSON(w http.ResponseWriter, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(v)
 }

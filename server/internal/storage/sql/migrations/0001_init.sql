@@ -8,7 +8,7 @@
 CREATE TABLE IF NOT EXISTS organization (
   id          TEXT PRIMARY KEY,
   name        TEXT NOT NULL,
-  plan        TEXT NOT NULL DEFAULT 'hobby',   -- hobby | profi
+  plan        TEXT NOT NULL DEFAULT 'hobby',   -- unused; kept for schema compatibility
   created_at  TIMESTAMP NOT NULL
 );
 
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS "user" (
 CREATE TABLE IF NOT EXISTS member (
   organization_id VARCHAR(64) NOT NULL,
   benutzer_id     VARCHAR(64) NOT NULL,
-  role           TEXT NOT NULL DEFAULT 'owner', -- owner | imker | viewer
+  role           TEXT NOT NULL DEFAULT 'owner', -- owner | member
   PRIMARY KEY (organization_id, benutzer_id)
 );
 

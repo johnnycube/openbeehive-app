@@ -15,14 +15,14 @@ import (
 type orgRepo struct{ s *Store }
 
 func (r *orgRepo) Create(ctx context.Context, o *storage.Organization) error {
-	return r.s.exec(ctx, `INSERT INTO organization (id, name, plan, created_at) VALUES (?, ?, ?, ?)`,
-		o.ID, o.Name, o.Plan, o.CreatedAt)
+	return r.s.exec(ctx, `INSERT INTO organization (id, name, created_at) VALUES (?, ?, ?)`,
+		o.ID, o.Name, o.CreatedAt)
 }
 
 func (r *orgRepo) Get(ctx context.Context, id string) (*storage.Organization, error) {
 	var o storage.Organization
 	err := r.s.db.GetContext(ctx, &o, r.s.db.Rebind(
-		`SELECT id, name, plan, created_at FROM organization WHERE id = ?`), id)
+		`SELECT id, name, created_at FROM organization WHERE id = ?`), id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, storage.ErrNotFound
 	}

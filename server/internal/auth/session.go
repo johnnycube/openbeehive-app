@@ -40,7 +40,7 @@ func NewSessionManager(secret string, ttl time.Duration) *SessionManager {
 	b := []byte(secret)
 	if len(b) == 0 {
 		// Ephemeral secret: tokens are valid only for this process lifetime.
-		// Set SESSION_SECRET in production so sessions survive restarts.
+		// Set BEEHIVE_SESSION_SECRET in production so sessions survive restarts.
 		b = make([]byte, 32)
 		_, _ = rand.Read(b)
 	}
