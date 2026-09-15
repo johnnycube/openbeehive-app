@@ -32,5 +32,11 @@
     "leaflet": "^1.9.4",
     "qrcode": "^1.5.4",
     "svelte-i18n": "^4.0.0"
+  },
+  "overrides": {
+    "cookie": "^0.7.2",
+    "svelte-i18n": {
+      "esbuild": "^0.25.0"
+    }
   }
 }
