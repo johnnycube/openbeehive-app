@@ -5,6 +5,59 @@ All notable changes to the Openbeehive application are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-15
+
+The integration API release: every entity is reachable through a served
+Connect-RPC service, scripts and devices authenticate with API keys, and
+the proto contract is English throughout. Breaking for external clients
+that generated code from the old protos (see "Proto renames").
+
+### Added
+
+- **Integration API.** Every entity now has a served Connect-RPC service:
+  `QueenService`, `InspectionService`, `TaskService`, `TreatmentService`,
+  `EventService` and `StatsService` join `ApiaryService`, `HiveService` and
+  `SyncService`. Writes go through the same per-field merge and change log as
+  the app's sync, so a record created through the API (for example a hive
+  scale posting `CreateInspection` with `weight_kg`) shows up on every device
+  on its next sync and merges with later edits field by field. Server-side
+  writes mirror the app's flows: creating a hive opens a placement interval
+  and records a CREATED event, `RelocateHive` closes and opens placements,
+  `CreateQueen` ends the previous reign, inspections and treatments freeze
+  the apiary and reigning queen at their date.
+- **`HarvestService`** (`CreateHarvest`, `ListHarvests`, `DeleteHarvest`):
+  records the harvest with frozen apiary and queen plus the HARVEST fact
+  event, so API-recorded harvests feed the honey statistics like the app's.
+- **API keys** for scripts and devices: Settings → API keys mints long-lived
+  keys (`obhk_…`, shown once, stored hashed) bound to your account and the
+  active tenant; send them as `Authorization: Bearer`. Keys are managed with
+  a normal session only, never for the demo account, and die with the
+  tenant membership. Keys can be read-only (`Get*`/`List*`/`Pull`/`Subscribe`
+  only) and can carry an expiry (30/90/365 days or never). Tenant admins
+  see and can revoke every member's key of their tenant (`?tenant=1` on
+  the list endpoint; Settings shows "Keys of other members"). New table
+  `api_key` (migration 0014).
+- Offset pagination: `page_token` is honoured and `next_page_token` returned.
+
+### Changed
+
+- **Proto renames** (English contract): `SetTaskErledigt` → `SetTaskDone`,
+  `nur_open` → `only_open`, `nur_activee` → `only_active`,
+  `ersets_vorherige` removed (replacement is always applied),
+  `eventse` → `events`, `pro_*` → `per_*`, `Dashboard`/`HoneyStats` →
+  `GetDashboard`/`GetHoneyStats`. `PhotoUploadUrl` is replaced by
+  `AddInspectionPhoto`/`RemoveInspectionPhoto` (photos are inline data-URL
+  thumbnails, as in the app). `Queen.trait_*` dropped (never stored);
+  `Queen.replaced_at` added. `CreateInspectionRequest` gains the stock-card
+  fields (`weight_kg`, `brood_frames`, ...).
+- `ApiaryService`/`HiveService` writes now go through the change log too and
+  delete softly (previously they bypassed sync and hard-deleted rows).
+- **`app/.env.example`** now names the variables the app actually reads
+  (`BEEHIVE_API_URL`, `BEEHIVE_MARKETING_URL`, `BEEHIVE_PUBLIC_URL`).
+- **Docs and comments corrected:** stale first-account-admin notes, role lists,
+  version pins and the "apiary-level sharing" claim; unused locale strings
+  removed from the app bundle.
+
 ## [0.2.3] - 2026-09-11
 
 ### Added
@@ -114,7 +167,7 @@ First public release. 🐝
 - **Sync engine** with HLC timestamps, per-field last-writer-wins and OR-Sets;
   apiary-level sharing via scopes.
 - **Pluggable backends:** PostgreSQL · MySQL · SQLite, and MinIO/S3 ·
-  filesystem, selected via `DEPLOYMENT_PROFILE` (`cloud` | `selfhost`).
+  filesystem, selected via `BEEHIVE_DEPLOYMENT_PROFILE` (`cloud` | `selfhost`).
 - **Connect-RPC API** (gRPC + HTTP/JSON) with the `.proto` contract as the
   source of truth.
 - **OIDC authentication** with multiple providers.
@@ -125,6 +178,8 @@ First public release. 🐝
   Docker image for the cloud profile.
 - **Multi-language UI:** English, German, French, Spanish, Italian.
 
+[0.3.0]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.3.0
+[0.2.3]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.2.3
 [0.2.2]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.2.2
 [0.2.1]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.2.1
 [0.1.0]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.1.0
