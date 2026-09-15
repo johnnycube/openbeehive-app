@@ -8,6 +8,7 @@
   import {
     enrollPasskey, listPasskeys, deletePasskey, passkeysSupported, type PasskeyInfo
   } from '$lib/webauthn';
+  import { listApiKeys, createApiKey, deleteApiKey, type ApiKeyInfo, type ApiKeyScope } from '$lib/apikeys';
 
   const API = (import.meta.env.BEEHIVE_API_URL ?? '').replace(/\/$/, '');
 
@@ -55,6 +56,7 @@
       activeOrg = j.active_org ?? '';
       await loadInvites();
       await loadPasskeys();
+      await loadApiKeys();
     } catch { /* single-user mode: no tenants */ }
   }
   onMount(loadTenants);
@@ -89,6 +91,56 @@
   async function removePasskey(id: string) {
     if (!confirm($_('pk.delete_confirm'))) return;
     if (await deletePasskey(API, id, authHeaders())) await loadPasskeys();
+  }
+
+  // --- API keys (scripts and integrations, bound to account + active tenant) ---
+  let apiKeys = $state<ApiKeyInfo[]>([]);
+  let akName = $state('');
+  let akScope = $state<ApiKeyScope>('write');
+  let akExpiry = $state(0); // days; 0 = never
+  let akToken = $state('');
+  let akMsg = $state('');
+  let akErr = $state(false);
+  let akBusy = $state(false);
+  let akCopied = $state(false);
+
+  // Tenant admins also see the other members' keys (owner-only endpoint).
+  let tenantKeys = $state<ApiKeyInfo[]>([]);
+
+  async function loadApiKeys() {
+    apiKeys = await listApiKeys(API, authHeaders());
+    tenantKeys = isOwner ? (await listApiKeys(API, authHeaders(), true)).filter((k) => !k.mine) : [];
+  }
+
+  async function addApiKey() {
+    if (akBusy) return;
+    akBusy = true; akMsg = ''; akErr = false; akToken = ''; akCopied = false;
+    try {
+      const k = await createApiKey(API, akName.trim(), akScope, akExpiry, authHeaders());
+      akToken = k.token;
+      akName = ''; akScope = 'write'; akExpiry = 0;
+      await loadApiKeys();
+    } catch (e) {
+      akErr = true;
+      akMsg = String((e as Error)?.message ?? e);
+    } finally {
+      akBusy = false;
+    }
+  }
+
+  const isExpired = (k: ApiKeyInfo) => !!k.expires_at && new Date(k.expires_at) <= new Date();
+
+  async function copyApiKey() {
+    try {
+      await navigator.clipboard.writeText(akToken);
+      akCopied = true;
+      setTimeout(() => { akCopied = false; }, 2000);
+    } catch { /* clipboard unavailable: the key stays selectable */ }
+  }
+
+  async function removeApiKey(id: string, theirs = false) {
+    if (!confirm($_(theirs ? 'apikeys.delete_theirs_confirm' : 'apikeys.delete_confirm'))) return;
+    if (await deleteApiKey(API, id, authHeaders())) await loadApiKeys();
   }
 
   async function loadInvites() {
@@ -323,6 +375,84 @@
     </section>
   {/if}
 
+  {#if signedIn}
+    <section class="card">
+      <h2>{$_('apikeys.title')}</h2>
+      <p class="help">{$_('apikeys.help')}</p>
+      {#if apiKeys.length}
+        <ul class="invites">
+          {#each apiKeys as k (k.id)}
+            <li>
+              <div class="imeta">
+                <strong>⚙ {k.name || $_('apikeys.unnamed')}</strong>
+                <code class="akprefix">{k.prefix}…</code>
+                <span class="trole">{k.scope === 'read' ? $_('apikeys.scope_read') : $_('apikeys.scope_write')}</span>
+                <span class="idate">{$_('apikeys.created')} {new Date(k.created_at).toLocaleDateString($locale ?? undefined)}</span>
+                {#if k.expires_at}
+                  <span class="idate" class:akexpired={isExpired(k)}>{isExpired(k) ? $_('apikeys.expired') : $_('apikeys.expires')} {new Date(k.expires_at).toLocaleDateString($locale ?? undefined)}</span>
+                {/if}
+                {#if k.last_used_at}
+                  <span class="idate">{$_('apikeys.last_used')} {new Date(k.last_used_at).toLocaleDateString($locale ?? undefined)}</span>
+                {/if}
+              </div>
+              <div class="iactions">
+                <button class="data-btn danger" onclick={() => removeApiKey(k.id)}>{$_('apikeys.delete')}</button>
+              </div>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="help">{$_('apikeys.none')}</p>
+      {/if}
+      <div class="trow">
+        <input bind:value={akName} placeholder={$_('apikeys.name_ph')} disabled={akBusy} />
+        <select bind:value={akScope} disabled={akBusy} aria-label={$_('apikeys.scope_label')}>
+          <option value="write">{$_('apikeys.scope_write')}</option>
+          <option value="read">{$_('apikeys.scope_read')}</option>
+        </select>
+        <select bind:value={akExpiry} disabled={akBusy} aria-label={$_('apikeys.expiry_label')}>
+          <option value={0}>{$_('apikeys.expiry_never')}</option>
+          <option value={30}>{$_('apikeys.expiry_30')}</option>
+          <option value={90}>{$_('apikeys.expiry_90')}</option>
+          <option value={365}>{$_('apikeys.expiry_365')}</option>
+        </select>
+        <button class="data-btn" onclick={addApiKey} disabled={akBusy}>+ {$_('apikeys.add')}</button>
+      </div>
+      {#if akToken}
+        <div class="aknew">
+          <p class="help">{$_('apikeys.new_help')}</p>
+          <div class="trow">
+            <input readonly value={akToken} onfocus={(e) => (e.currentTarget as HTMLInputElement).select()} />
+            <button class="data-btn" onclick={copyApiKey}>{akCopied ? $_('apikeys.copied') : $_('apikeys.copy')}</button>
+          </div>
+        </div>
+      {/if}
+      {#if akMsg}<p class="import-msg" class:err={akErr}>{akMsg}</p>{/if}
+      {#if isOwner && tenantKeys.length}
+        <h3 class="aksub">{$_('apikeys.tenant_title')}</h3>
+        <p class="help">{$_('apikeys.tenant_help')}</p>
+        <ul class="invites">
+          {#each tenantKeys as k (k.id)}
+            <li>
+              <div class="imeta">
+                <strong>⚙ {k.name || $_('apikeys.unnamed')}</strong>
+                <code class="akprefix">{k.prefix}…</code>
+                <span class="trole">{k.scope === 'read' ? $_('apikeys.scope_read') : $_('apikeys.scope_write')}</span>
+                <span class="idate">{k.user_email}</span>
+                {#if k.last_used_at}
+                  <span class="idate">{$_('apikeys.last_used')} {new Date(k.last_used_at).toLocaleDateString($locale ?? undefined)}</span>
+                {/if}
+              </div>
+              <div class="iactions">
+                <button class="data-btn danger" onclick={() => removeApiKey(k.id, true)}>{$_('apikeys.delete')}</button>
+              </div>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </section>
+  {/if}
+
   <section class="card">
     <h2>{$_('data.title')}</h2>
     <p class="help">{$_('data.export_help')}</p>
@@ -429,6 +559,12 @@
   .invites .trole { font-size: .72rem; font-weight: 700; color: var(--ink-soft); background: var(--cream);
     border: 1px solid var(--line); border-radius: 7px; padding: 2px 7px; }
   .invites .idate { font-size: .8rem; color: var(--ink-soft); }
+  .akprefix { font-size: .8rem; color: var(--ink-soft); background: var(--cream); padding: 2px 6px; border-radius: 6px; }
+  .akexpired { color: #b5402f; font-weight: 700; }
+  .aksub { margin: 18px 0 4px; font-size: 1rem; }
+  .trow select { padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--cream2); font: inherit; }
+  .aknew { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--honey); border-radius: 12px; background: rgba(199,127,34,.06); }
+  .aknew input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; }
   .invites .iactions { display: flex; gap: 8px; }
   .data-btn.danger:hover:not(:disabled) { border-color: #b5402f; background: rgba(181,64,47,.08); color: #b5402f; }
   .danger-zone { margin-top: 20px; padding: 14px; border: 1px solid rgba(181,64,47,.4); border-radius: 12px; }
