@@ -4,7 +4,7 @@ package openbeehive.v1;
 
 import "google/protobuf/timestamp.proto";
 
-// Type eines historyn-Eventss.
+// Kind of history event.
 enum EventType {
   EVENT_TYPE_UNSPECIFIED = 0;
   EVENT_TYPE_CREATED = 1;            // hive created
@@ -38,15 +38,15 @@ message Event {
   string author_id = 14;
 }
 
-// Events are replicated via SyncService; reads happen locally.
-// Diese RPCs dienen server-autoritativen Auswertungen/Exports.
+// Events are replicated via SyncService and read locally by the app. This
+// RPC serves exports and integrations; results are newest first.
 message ListEventsRequest {
   string apiary_id = 1; // optional filter
   string hive_id = 2;
   string queen_id = 3;
-  int32 limit = 4;
+  int32 limit = 4; // 0 = 100, max 1000
 }
-message ListEventsResponse { repeated Event eventse = 1; }
+message ListEventsResponse { repeated Event events = 1; }
 
 service EventService {
   rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);

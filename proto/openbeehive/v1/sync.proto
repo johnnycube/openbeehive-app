@@ -4,8 +4,8 @@ package openbeehive.v1;
 
 // Generic sync protocol with per-field LWW.
 // payload_json contains only the CHANGED fields (partial delta):
-//   Skalar:  {"name": "Orchard Meadow", "note": "..."}
-//   Set:     {"photo_keys": {"add": ["k1"], "remove": ["k2"]}}  (OR-Set-Delta)
+//   Scalar:  {"name": "Orchard Meadow", "note": "..."}
+//   Set:     {"photo_keys": {"add": ["k1"], "remove": ["k2"]}}  (OR-Set delta)
 // hlc stamps the whole delta; per field the field clock decides (LWW),
 // set fields are merged by union.
 
@@ -27,7 +27,7 @@ message Change {
 
 message PullRequest {
   string cursor = 1;     // last seen server sequence ("" = from the start)
-  int32 limit = 2;       // 0 => Server-Default
+  int32 limit = 2;       // 0 => server default
 }
 message PullResponse {
   repeated Change changes = 1;

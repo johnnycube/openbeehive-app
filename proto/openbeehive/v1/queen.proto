@@ -15,37 +15,38 @@ message Queen {
   string breeder_number = 7;
   google.protobuf.Timestamp introduced_at = 8;
   bool active = 9;
-  // pro breeding-record fields
-  double trait_temperament = 10;
-  double trait_honey = 11;
-  double trait_varroa = 12;
   string note = 13;
   google.protobuf.Timestamp created_at = 14;
   google.protobuf.Timestamp updated_at = 15;
+  google.protobuf.Timestamp replaced_at = 16; // end of the reign; unset while active
 }
 
+// Creating a queen always ends the reign of the hive's current active queen
+// (replaced_at = introduced_at) and records QUEEN_REPLACED + QUEEN_INTRODUCED
+// events, exactly as the app does.
 message CreateQueenRequest {
   string hive_id = 1;
   int32 year = 2;
   string origin = 3;
   string breeder_number = 4;
-  google.protobuf.Timestamp introduced_at = 5;
+  google.protobuf.Timestamp introduced_at = 5; // unset = now
   string note = 6;
-  // automatically deactivates an existing active queen of the hive
-  bool ersets_vorherige = 7;
+  MarkingColor marking = 7; // unset = derived from year
 }
 message CreateQueenResponse { Queen queen = 1; }
 
 message ListQueensRequest {
   PageRequest page = 1;
   string hive_id = 2;     // optional filter
-  bool nur_activee = 3;
+  bool only_active = 3;
 }
 message ListQueensResponse {
   repeated Queen queens = 1;
   PageResponse page = 2;
 }
 
+// Updates year, marking, origin, breeder_number, introduced_at, replaced_at,
+// active and note. hive_id and organization_id cannot be changed.
 message UpdateQueenRequest { Queen queen = 1; }
 message UpdateQueenResponse { Queen queen = 1; }
 

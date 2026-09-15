@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package openbeehive.v1;
+
+import "google/protobuf/timestamp.proto";
+import "openbeehive/v1/common.proto";
+import "openbeehive/v1/inspection.proto"; // Harvest message
+
+// Honey harvests. The server freezes the context (apiary and reigning queen
+// at `date`), writes the harvest row and the HARVEST fact event that feeds
+// the honey statistics, exactly as the app does; the change reaches devices
+// through SyncService.
+
+message CreateHarvestRequest {
+  string hive_id = 1;
+  google.protobuf.Timestamp date = 2; // unset = now
+  double amount_kg = 3;
+  string variety = 4;
+  double water_content = 5;
+  string batch_number = 6;
+  google.protobuf.Timestamp best_before = 7;
+  string note = 8;
+}
+message CreateHarvestResponse { Harvest harvest = 1; }
+
+message ListHarvestsRequest {
+  PageRequest page = 1;
+  string hive_id = 2;   // optional filter
+  string apiary_id = 3; // optional filter
+}
+message ListHarvestsResponse {
+  repeated Harvest harvests = 1;
+  PageResponse page = 2;
+}
+
+message DeleteHarvestRequest { string id = 1; }
+message DeleteHarvestResponse {}
+
+service HarvestService {
+  rpc CreateHarvest(CreateHarvestRequest) returns (CreateHarvestResponse);
+  rpc ListHarvests(ListHarvestsRequest) returns (ListHarvestsResponse);
+  rpc DeleteHarvest(DeleteHarvestRequest) returns (DeleteHarvestResponse);
+}

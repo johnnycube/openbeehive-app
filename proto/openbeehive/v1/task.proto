@@ -22,12 +22,13 @@ message Task {
   bool done = 7;
   TaskPriority priority = 8;
   string note = 9;
-  // recurrence (e.g. weekly varroa check) as an RRULE string
-  string recurrence = 10;
+  string recurrence = 10; // RRULE string; stored, not evaluated by the app yet
   string assigned_to = 11; // user_id (Team)
   google.protobuf.Timestamp created_at = 12;
 }
 
+// Tasks without apiary_id live in the creator's personal scope and reach only
+// that user's devices; tasks with apiary_id are shared with the apiary.
 message CreateTaskRequest {
   string title = 1;
   string hive_id = 2;
@@ -41,7 +42,7 @@ message CreateTaskResponse { Task task = 1; }
 
 message ListTasksRequest {
   PageRequest page = 1;
-  bool nur_open = 2;
+  bool only_open = 2;
   string hive_id = 3;
 }
 message ListTasksResponse {
@@ -49,11 +50,11 @@ message ListTasksResponse {
   PageResponse page = 2;
 }
 
-message SetTaskErledigtRequest {
+message SetTaskDoneRequest {
   string id = 1;
   bool done = 2;
 }
-message SetTaskErledigtResponse { Task task = 1; }
+message SetTaskDoneResponse { Task task = 1; }
 
 message DeleteTaskRequest { string id = 1; }
 message DeleteTaskResponse {}
@@ -61,6 +62,6 @@ message DeleteTaskResponse {}
 service TaskService {
   rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
-  rpc SetTaskErledigt(SetTaskErledigtRequest) returns (SetTaskErledigtResponse);
+  rpc SetTaskDone(SetTaskDoneRequest) returns (SetTaskDoneResponse);
   rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse);
 }

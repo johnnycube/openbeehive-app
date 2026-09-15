@@ -5,15 +5,18 @@ package openbeehive.v1;
 import "openbeehive/v1/task.proto";
 import "openbeehive/v1/inspection.proto";
 
-// Aggregated metrics for the dashboard.
-message DashboardRequest {}
+// Aggregated metrics, computed server-side from the tenant's rows. The app
+// computes the same figures locally; these RPCs serve integrations.
+message DashboardRequest {
+  int32 threshold_days = 1; // due-inspection threshold; 0 = 21
+}
 message DashboardResponse {
   int32 apiaries = 1;
   int32 hives = 2;
   int32 active_queens = 3;
   int32 open_tasks = 4;
   int32 overdue_tasks = 5;
-  double honey_kg_season = 6;
+  double honey_kg_season = 6; // harvested this calendar year
 
   // hives not inspected for >= threshold_days
   repeated DueInspection due_inspections = 7;
@@ -36,8 +39,8 @@ message HoneyPerMonth {
 }
 
 service StatsService {
-  rpc Dashboard(DashboardRequest) returns (DashboardResponse);
-  rpc HoneyStats(HoneyStatsRequest) returns (HoneyStatsResponse);
+  rpc GetDashboard(DashboardRequest) returns (DashboardResponse);
+  rpc GetHoneyStats(HoneyStatsRequest) returns (HoneyStatsResponse);
 }
 
 // Yield analysis from the event fact table (type = HARVEST).
@@ -50,7 +53,7 @@ message HoneySum {
   double kg = 3;
 }
 message HoneyStatsResponse {
-  repeated HoneySum pro_queen = 1;
-  repeated HoneySum pro_apiary = 2;
-  repeated HoneySum pro_year = 3;
+  repeated HoneySum per_queen = 1;
+  repeated HoneySum per_apiary = 2;
+  repeated HoneySum per_year = 3;
 }

@@ -6,8 +6,8 @@ import "google/protobuf/timestamp.proto";
 
 // Pagination for all list calls.
 message PageRequest {
-  int32 page_size = 1;     // 0 => Server-Default
-  string page_token = 2;   // opaque Cursor
+  int32 page_size = 1;     // 0 => server default
+  string page_token = 2;   // next_page_token of the previous page (decimal offset)
 }
 
 message PageResponse {

@@ -21,7 +21,7 @@ message Inspection {
   string varroa = 12;   // e.g. "3 mites/day debris count"
   double honey_kg = 13;        // harvested during this inspection
   string note = 14;
-  repeated string photo_keys = 15; // blob keys (MinIO/FS)
+  repeated string photo_keys = 15; // photos as data-URL thumbnails (OR-Set)
   google.protobuf.Timestamp created_at = 16;
 
   // Stockkarte detail: colony state, a calmness/steadiness rating (Wabensitz)
@@ -45,9 +45,11 @@ message Inspection {
   double humidity_outside = 30;
 }
 
+// The server freezes the context (apiary and reigning queen at `date`) and
+// records an INSPECTION event, exactly as the app does for a visit.
 message CreateInspectionRequest {
   string hive_id = 1;
-  google.protobuf.Timestamp date = 2;
+  google.protobuf.Timestamp date = 2; // unset = now
   string weather = 3;
   bool queen_seen = 4;
   bool eggs_seen = 5;
@@ -62,6 +64,17 @@ message CreateInspectionRequest {
   double temp_outside = 14;
   double humidity_hive = 15;
   double humidity_outside = 16;
+  // Stock card details (see Inspection for the meaning of each field).
+  int32 brood_frames = 17;
+  int32 calmness = 18;
+  double fed_kg = 19;
+  int32 frames_added = 20;
+  int32 frames_removed = 21;
+  bool drone_frame_cut = 22;
+  bool super_added = 23;
+  double weight_kg = 24;
+  int32 youngest_larva = 25;
+  bool covered_larva = 26;
 }
 message CreateInspectionResponse { Inspection inspection = 1; }
 
@@ -77,24 +90,29 @@ message ListInspectionsResponse {
 message DeleteInspectionRequest { string id = 1; }
 message DeleteInspectionResponse {}
 
-// Pre-signed upload URL for a photo (MinIO presigned PUT or FS token).
-message PhotoUploadUrlRequest {
+// Photos are stored inline as data-URL thumbnails in the inspection's
+// photo_keys OR-Set (the app downsizes to ~480px before saving; keep uploads
+// small). Removing passes the exact stored value.
+message AddInspectionPhotoRequest {
   string inspection_id = 1;
-  string content_type = 2;
+  string photo = 2; // data URL, e.g. "data:image/jpeg;base64,..."
 }
-message PhotoUploadUrlResponse {
-  string upload_url = 1;
-  string blob_key = 2;
+message AddInspectionPhotoResponse { Inspection inspection = 1; }
+message RemoveInspectionPhotoRequest {
+  string inspection_id = 1;
+  string photo = 2;
 }
+message RemoveInspectionPhotoResponse { Inspection inspection = 1; }
 
 service InspectionService {
   rpc CreateInspection(CreateInspectionRequest) returns (CreateInspectionResponse);
   rpc ListInspections(ListInspectionsRequest) returns (ListInspectionsResponse);
   rpc DeleteInspection(DeleteInspectionRequest) returns (DeleteInspectionResponse);
-  rpc PhotoUploadUrl(PhotoUploadUrlRequest) returns (PhotoUploadUrlResponse);
+  rpc AddInspectionPhoto(AddInspectionPhotoRequest) returns (AddInspectionPhotoResponse);
+  rpc RemoveInspectionPhoto(RemoveInspectionPhotoRequest) returns (RemoveInspectionPhotoResponse);
 }
 
-// --- Pro: Treatment (Bestandsbuch / medicine documentation) ---
+// --- Treatment (Bestandsbuch / medicine documentation) ---
 // The treatment service lives in treatment.proto.
 message Treatment {
   string id = 1;
@@ -114,7 +132,7 @@ message Treatment {
   google.protobuf.Timestamp created_at = 15;
 }
 
-// --- Profi: Harvest / Honeychargen ---
+// --- Harvest / honey batches ---
 message Harvest {
   string id = 1;
   string organization_id = 2;
@@ -126,4 +144,6 @@ message Harvest {
   string batch_number = 8;
   google.protobuf.Timestamp best_before = 9;
   string note = 10;
+  string hive_id = 11;   // frozen context at harvest time
+  string queen_id = 12;  // frozen context (reigning queen)
 }

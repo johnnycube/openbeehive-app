@@ -38,7 +38,7 @@ message Hive {
   string qr_code = 10;          // for the hive's stock card
   google.protobuf.Timestamp created_at = 11;
   google.protobuf.Timestamp updated_at = 12;
-  string photo = 13;            // representative photo (data URL or blob key)
+  string photo = 13;            // representative photo (data URL)
 }
 
 message CreateHiveRequest {
@@ -69,7 +69,7 @@ message UpdateHiveResponse { Hive hive = 1; }
 message DeleteHiveRequest { string id = 1; }
 message DeleteHiveResponse {}
 
-// Record a relocation (migratory beekeeping, pro feature).
+// Record a relocation (migratory beekeeping).
 message RelocateHiveRequest {
   string id = 1;
   string target_apiary_id = 2;
