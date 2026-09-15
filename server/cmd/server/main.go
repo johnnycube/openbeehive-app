@@ -112,11 +112,14 @@ func main() {
 
 	if authEnabled {
 		mux.HandleFunc("/auth/logout", sessions.LogoutHandler())
-		interceptors = append(interceptors, auth.SessionInterceptor(sessions))
-		// Demo sessions are read-only: reject mutating RPCs server-side.
-		if cfg.Demo.Enabled {
-			interceptors = append(interceptors, auth.ReadOnlyGuard())
-		}
+		// API keys for scripts and integrations: managed with a session in
+		// Settings, accepted on RPCs alongside session tokens.
+		keys := auth.NewAPIKeys(store.DB(), sessions, store.Users(), store.Members())
+		keys.Routes(mux)
+		interceptors = append(interceptors, auth.SessionInterceptor(keys))
+		// Demo sessions and read-scoped API keys are read-only: reject
+		// mutating RPCs server-side.
+		interceptors = append(interceptors, auth.ReadOnlyGuard())
 	} else {
 		// Self-host single-user mode: no auth configured -> inject a fixed
 		// local identity so the offline-first app works without login.

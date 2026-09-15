@@ -17,7 +17,10 @@ type Identity struct {
 	UserID string
 	OrgID  string // active tenant
 	Email  string
-	Role   string // owner | imker | viewer
+	Role   string // account role: admin | user | demo
+	// ReadOnly marks identities that may only call reading RPCs: the demo
+	// account and API keys created with the "read" scope.
+	ReadOnly bool
 }
 
 func WithIdentity(ctx context.Context, id Identity) context.Context {
@@ -36,23 +39,29 @@ type SessionVerifier interface {
 	Verify(ctx context.Context, token string) (Identity, error)
 }
 
-var errMissingToken = connectError("missing session token")
-
-type connectError string
-
-func (e connectError) Error() string { return string(e) }
+var errMissingToken = errors.New("missing session token")
 
 // ErrDemoReadOnly rejects writes from demo sessions.
 var ErrDemoReadOnly = errors.New("the demo account is read-only — data resets hourly")
 
-// ReadOnlyGuard rejects mutating RPCs for read-only sessions (the demo
-// account). Read methods pass; handler streams (Subscribe) are read-only by
-// design and pass unchanged.
+// ErrKeyReadOnly rejects writes from read-scoped API keys.
+var ErrKeyReadOnly = errors.New("this API key is read-only")
+
+// ReadOnlyGuard rejects mutating RPCs for read-only identities: the demo
+// account and read-scoped API keys. Read methods pass; handler streams
+// (Subscribe) are read-only by design and pass unchanged.
 func ReadOnlyGuard() connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			if id, ok := FromContext(ctx); ok && id.Role == "demo" && !readOnlyMethod(req.Spec().Procedure) {
+			id, ok := FromContext(ctx)
+			if !ok || readOnlyMethod(req.Spec().Procedure) {
+				return next(ctx, req)
+			}
+			if id.Role == "demo" {
 				return nil, connect.NewError(connect.CodePermissionDenied, ErrDemoReadOnly)
+			}
+			if id.ReadOnly {
+				return nil, connect.NewError(connect.CodePermissionDenied, ErrKeyReadOnly)
 			}
 			return next(ctx, req)
 		}
@@ -66,7 +75,7 @@ func readOnlyMethod(procedure string) bool {
 	if i := strings.LastIndexByte(procedure, '/'); i >= 0 {
 		method = procedure[i+1:]
 	}
-	for _, p := range []string{"Get", "List", "Pull", "Subscribe", "Watch", "Stats"} {
+	for _, p := range []string{"Get", "List", "Pull", "Subscribe"} {
 		if strings.HasPrefix(method, p) {
 			return true
 		}
