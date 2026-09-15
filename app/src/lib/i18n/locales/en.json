@@ -4,13 +4,6 @@
     "tagline": "Beekeeping records"
   },
   "nav": {
-    "features": "Features",
-    "why": "Why",
-    "pricing": "Pricing",
-    "selfhost": "Self-hosting",
-    "docs": "Docs",
-    "github": "GitHub",
-    "login": "Sign in",
     "dashboard": "Overview",
     "apiaries": "Apiaries",
     "hives": "Hives",
@@ -19,7 +12,13 @@
     "settings": "Settings"
   },
   "qr": {
-    "print": "Print"
+    "print": "Print",
+    "opening": "Opening hive…",
+    "offline_title": "Offline",
+    "offline_text": "This hive is not on this device yet. It will be synced as soon as you are back online.",
+    "missing_title": "Not found",
+    "missing_text": "This hive does not exist or has not been shared with you.",
+    "to_overview": "Back to overview"
   },
   "scan": {
     "aim": "Aim at the hive's QR code",
@@ -32,14 +31,7 @@
     "about": "About",
     "imprint": "Imprint",
     "privacy": "Privacy",
-    "rights": "All rights reserved.",
-    "tagline": "Offline-first beekeeping records.",
     "legal": "About & legal"
-  },
-  "pages": {
-    "about_title": "About Openbeehive",
-    "imprint_title": "Imprint",
-    "privacy_title": "Privacy policy"
   },
   "settings": {
     "title": "Settings",
@@ -79,7 +71,6 @@
     "title": "Tenants",
     "help": "Switch between your apiary collections, or create a new one (e.g. a club).",
     "active": "Active",
-    "switch": "Switch",
     "create": "Create tenant",
     "create_ph": "e.g. Beekeeping Club",
     "invite": "Invite a beekeeper",
@@ -115,41 +106,6 @@
     "mode_json": "Openbeehive backup (JSON)",
     "mode_beexml": "BeeXML",
     "mode_csv": "CSV from another app"
-  },
-  "landing": {
-    "badge": "Free, open source, no catch",
-    "hero_title": "Your whole bee year in one place.",
-    "hero_sub": "Apiaries, hives, queens, inspections and tasks — calmly, clearly recorded. For every beekeeper, from your first colony to your hundredth.",
-    "cta_start": "Open the app",
-    "cta_docs": "Read the docs",
-    "cta_selfhost": "Self-host it",
-    "showcase_title": "Made for the bee yard",
-    "showcase_text": "Mobile-first and offline-first: jot down an inspection right at the hive with no signal, and it syncs the moment you're back online. Big touch targets, quick entry, nothing in your way.",
-    "showcase_point_offline": "Works fully offline",
-    "showcase_point_sync": "Syncs across your devices",
-    "showcase_point_qr": "QR codes per hive",
-    "why_title": "Why I made this",
-    "why_lead": "Not a business. Just something useful, given away.",
-    "why_p1": "I keep bees, and I wanted a calm, honest place to keep my records — one that works right at the hive, in my pocket, with or without a signal. I couldn't find it, so I built it.",
-    "why_p2": "There's nothing to sell here and no one to upsell. Openbeehive is free and open source, and your records stay yours — keep them in the hosted version or run the whole thing on your own machine. If it helps you keep better bees, that's the entire point.",
-    "opensource_title": "Open, and here to stay",
-    "opensource_text": "Every line lives on GitHub under the AGPL-3.0. Read it, improve it, or run your own copy — because something useful shouldn't depend on me being around.",
-    "opensource_cta": "View on GitHub",
-    "selfhost_title": "Run it yourself",
-    "selfhost_text": "Would rather keep everything on your own machine? Run Openbeehive yourself — a single small binary, or Postgres and object storage if you prefer. No account, nothing leaving your control.",
-    "cta_final_title": "Come on in",
-    "cta_final_text": "It opens right in your browser — no account hoops, nothing to buy. Add it to your home screen whenever you like.",
-    "disclaimer": "Openbeehive is early software (v0.1.0) — already useful, but expect rough edges, and please keep your own backups. The hosted version is free and ad-free.",
-    "feature_records_title": "Complete hive records",
-    "feature_records_text": "Every inspection with queen, brood, stores, varroa and photos — chronological per colony.",
-    "feature_breeding_title": "Queens & breeding",
-    "feature_breeding_text": "Marking colour by year, origin, breeding values and mating stations.",
-    "feature_inventory_title": "Treatment log & harvest",
-    "feature_inventory_text": "Treatments with batch and withdrawal period, honey lots with best-before — audit-ready.",
-    "feature_team_title": "Share with others",
-    "feature_team_text": "Invite fellow beekeepers, share apiaries and set simple roles — handy for clubs and partners.",
-    "feature_selfhost_title": "Your data, your choice",
-    "feature_selfhost_text": "Use the hosted version or self-host a single binary — Postgres + MinIO or just SQLite + files."
   },
   "dashboard": {
     "welcome": "Welcome back",
@@ -188,9 +144,7 @@
   "hives": {
     "title": "Hives",
     "empty": "No hives yet. Add one to an apiary.",
-    "new": "New hive",
     "name": "Name",
-    "apiary": "Apiary",
     "need_apiary": "Create an apiary first.",
     "name_ph": "e.g. Hive 7",
     "edit": "Edit hive",
@@ -208,26 +162,20 @@
   },
   "queens": {
     "title": "Queen",
-    "current": "Current queen",
     "none": "No queen recorded.",
     "set": "Set queen",
     "replace": "Replace queen",
-    "edit": "Edit queen",
     "year": "Year",
     "number": "Number",
     "number_ph": "e.g. 12",
-    "origin": "Origin",
     "origin_ph": "e.g. own breeding, Buckfast…",
     "marking": "Marking",
     "comment_ph": "Comment — breeding line, behaviour, notes…",
-    "history": "Queen history",
-    "introduced": "Introduced",
-    "replaced": "Replaced"
+    "history": "Queen history"
   },
   "tasks": {
     "title": "Tasks",
     "empty": "No tasks. Enjoy the quiet.",
-    "new": "New task",
     "title_ph": "What needs doing?",
     "due": "Due",
     "add": "Add",
@@ -353,9 +301,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
-    "edit": "Edit",
     "kg": "kg",
-    "back": "Back",
     "confirm_delete": "Delete this? This cannot be undone.",
     "saving": "Saving…",
     "save_failed": "Could not save: {msg}",

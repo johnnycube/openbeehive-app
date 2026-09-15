@@ -86,8 +86,8 @@ export async function pull() {
   initialSyncPending.set(false);
 }
 
-// Per-field LWW + OR-Set: only newer fields are applied, set fields
-// per union gemerged.
+// Per-field LWW + OR-Set: only newer fields are applied, set columns are
+// merged by union.
 async function applyRemote(ch: any) {
   if (!SYNCED_TABLES.includes(ch.entity)) return;
   const db = await getDB();
@@ -141,7 +141,6 @@ async function applyRemote(ch: any) {
 }
 
 // --- Orchestration ---
-let timer: ReturnType<typeof setInterval> | null = null;
 let running = false;
 let rerun = false;
 
@@ -190,11 +189,6 @@ export function startSync() {
     } catch { /* flag resolves with the first sync instead */ }
     await syncOnce();
   })();
-  timer = setInterval(syncOnce, 15_000);          // periodic Fallback
+  setInterval(syncOnce, 15_000);                  // periodic fallback
   window.addEventListener('online', () => void syncOnce()); // immediately on reconnect
-  // Optional: syncClient.subscribe({cursor}) for a real-time "poke".
-}
-
-export function stopSync() {
-  if (timer) clearInterval(timer);
 }

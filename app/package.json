@@ -1,7 +1,7 @@
 {
   "name": "openbeehive-web",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.3",
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
@@ -13,7 +13,6 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@sveltejs/adapter-node": "^5.5.7",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.69.2",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",

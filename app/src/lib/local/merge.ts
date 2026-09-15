@@ -36,7 +36,7 @@ export function orAdd(set: ORSet, elem: string, tag: string) {
 }
 export function orRemove(set: ORSet, elem: string) {
   const e = set[elem] ?? { a: [], r: [] };
-  for (const t of e.a) e.r = uniq(e.r, t); // nur observed tags remove
+  for (const t of e.a) e.r = uniq(e.r, t); // remove only observed tags
   set[elem] = e;
 }
 // Remove exactly the tags the ORIGIN device had observed (carried in the sync

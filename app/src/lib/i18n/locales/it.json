@@ -4,13 +4,6 @@
     "tagline": "Registro apistico"
   },
   "nav": {
-    "features": "Funzionalità",
-    "why": "Perché",
-    "pricing": "Prezzi",
-    "selfhost": "Self-hosting",
-    "docs": "Documentazione",
-    "github": "GitHub",
-    "login": "Accedi",
     "dashboard": "Panoramica",
     "apiaries": "Apiari",
     "hives": "Arnie",
@@ -19,7 +12,13 @@
     "settings": "Impostazioni"
   },
   "qr": {
-    "print": "Stampa"
+    "print": "Stampa",
+    "opening": "Apertura dell'arnia…",
+    "offline_title": "Offline",
+    "offline_text": "Questa arnia non è ancora su questo dispositivo. Verrà sincronizzata non appena la connessione sarà ripristinata.",
+    "missing_title": "Non trovata",
+    "missing_text": "Questa arnia non esiste o non è stata condivisa con te.",
+    "to_overview": "Torna alla panoramica"
   },
   "scan": {
     "aim": "Inquadra il codice QR dell'arnia",
@@ -32,14 +31,7 @@
     "about": "Informazioni",
     "imprint": "Note legali",
     "privacy": "Privacy",
-    "rights": "Tutti i diritti riservati.",
-    "tagline": "Registro apistico offline-first.",
     "legal": "Informazioni e note legali"
-  },
-  "pages": {
-    "about_title": "Informazioni su Openbeehive",
-    "imprint_title": "Note legali",
-    "privacy_title": "Informativa sulla privacy"
   },
   "settings": {
     "title": "Impostazioni",
@@ -79,7 +71,6 @@
     "title": "Spazi",
     "help": "Passa da una raccolta di apiari all'altra o creane una nuova (es. un club).",
     "active": "Attivo",
-    "switch": "Cambia",
     "create": "Crea spazio",
     "create_ph": "es. Club apistico",
     "invite": "Invita un apicoltore",
@@ -115,41 +106,6 @@
     "mode_json": "Backup Openbeehive (JSON)",
     "mode_beexml": "BeeXML",
     "mode_csv": "CSV da un'altra app"
-  },
-  "landing": {
-    "badge": "Gratuito, open source, nessun inganno",
-    "hero_title": "Tutta la tua stagione apistica in un unico posto.",
-    "hero_sub": "Apiari, arnie, regine, visite e attività — annotati con calma e chiarezza. Per ogni apicoltore, dalla tua prima colonia alla centesima.",
-    "cta_start": "Apri l'app",
-    "cta_docs": "Leggi la documentazione",
-    "cta_selfhost": "Ospitalo tu stesso",
-    "showcase_title": "Fatto per l'apiario",
-    "showcase_text": "Mobile-first e offline-first: annota una visita direttamente all'arnia anche senza segnale, e si sincronizza appena torni online. Pulsanti ampi, inserimento veloce, niente intralci.",
-    "showcase_point_offline": "Funziona completamente offline",
-    "showcase_point_sync": "Si sincronizza su tutti i tuoi dispositivi",
-    "showcase_point_qr": "Codici QR per ogni arnia",
-    "why_title": "Perché l'ho creato",
-    "why_lead": "Non è un'azienda. Solo qualcosa di utile, regalato.",
-    "why_p1": "Allevo api, e volevo un posto tranquillo e onesto dove tenere i miei registri — uno che funzioni direttamente all'arnia, in tasca, con o senza segnale. Non l'ho trovato, così l'ho costruito.",
-    "why_p2": "Qui non c'è niente da vendere e nessuno a cui proporre acquisti aggiuntivi. Openbeehive è gratuito e open source, e i tuoi registri restano tuoi — conservali nella versione ospitata oppure fai girare tutto sulla tua macchina. Se ti aiuta ad allevare meglio le tue api, è tutto qui il senso.",
-    "opensource_title": "Aperto, e qui per restare",
-    "opensource_text": "Ogni riga vive su GitHub con licenza AGPL-3.0. Leggila, miglioralo o fai girare la tua copia — perché qualcosa di utile non dovrebbe dipendere dalla mia presenza.",
-    "opensource_cta": "Vedi su GitHub",
-    "selfhost_title": "Eseguilo tu stesso",
-    "selfhost_text": "Preferisci tenere tutto sulla tua macchina? Fai girare Openbeehive tu stesso — un singolo piccolo binario, oppure Postgres e uno storage a oggetti se preferisci. Nessun account, niente che esca dal tuo controllo.",
-    "cta_final_title": "Entra pure",
-    "cta_final_text": "Si apre direttamente nel browser — niente trafile per l'account, niente da comprare. Aggiungilo alla schermata Home quando vuoi.",
-    "disclaimer": "Openbeehive è un software ancora giovane (v0.1.0) — già utile, ma aspettati qualche imperfezione e conserva i tuoi backup. La versione ospitata è gratuita e senza pubblicità.",
-    "feature_records_title": "Registri completi dell'arnia",
-    "feature_records_text": "Ogni visita con regina, covata, scorte, varroa e foto, in ordine cronologico per ogni colonia.",
-    "feature_breeding_title": "Regine e selezione",
-    "feature_breeding_text": "Colore di marcatura per anno, origine, valori di selezione e stazioni di fecondazione.",
-    "feature_inventory_title": "Registro dei trattamenti e raccolto",
-    "feature_inventory_text": "Trattamenti con lotto e tempo di sospensione, partite di miele con scadenza preferenziale: pronti per l'audit.",
-    "feature_team_title": "Condividi con altri",
-    "feature_team_text": "Invita altri apicoltori, condividi gli apiari e imposta ruoli semplici — comodo per associazioni e soci.",
-    "feature_selfhost_title": "I tuoi dati, la tua scelta",
-    "feature_selfhost_text": "Usa la versione ospitata o ospita un singolo binario — Postgres + MinIO oppure semplicemente SQLite + file."
   },
   "dashboard": {
     "welcome": "Bentornato",
@@ -188,9 +144,7 @@
   "hives": {
     "title": "Arnie",
     "empty": "Ancora nessuna arnia. Aggiungine una a un apiario.",
-    "new": "Nuova arnia",
     "name": "Nome",
-    "apiary": "Apiario",
     "need_apiary": "Crea prima un apiario.",
     "name_ph": "es. Arnia 7",
     "edit": "Modifica arnia",
@@ -208,26 +162,20 @@
   },
   "queens": {
     "title": "Regina",
-    "current": "Regina attuale",
     "none": "Nessuna regina registrata.",
     "set": "Imposta regina",
     "replace": "Sostituisci regina",
-    "edit": "Modifica regina",
     "year": "Anno",
     "number": "Numero",
     "number_ph": "es. 12",
-    "origin": "Origine",
     "origin_ph": "es. allevamento proprio, Buckfast…",
     "marking": "Marcatura",
     "comment_ph": "Commento: linea di selezione, comportamento, note…",
-    "history": "Cronologia regine",
-    "introduced": "Introdotta",
-    "replaced": "Sostituita"
+    "history": "Cronologia regine"
   },
   "tasks": {
     "title": "Attività",
     "empty": "Nessuna attività. Goditi la calma.",
-    "new": "Nuova attività",
     "title_ph": "Cosa c'è da fare?",
     "due": "Scadenza",
     "add": "Aggiungi",
@@ -353,9 +301,7 @@
     "save": "Salva",
     "cancel": "Annulla",
     "delete": "Elimina",
-    "edit": "Modifica",
     "kg": "kg",
-    "back": "Indietro",
     "confirm_delete": "Eliminare questo? L'operazione non può essere annullata.",
     "saving": "Salvataggio…",
     "save_failed": "Salvataggio non riuscito: {msg}",

@@ -69,7 +69,7 @@ async function emit(type: number, scopeId: string, e: {
   return id;
 }
 
-// --- writede Flows ---
+// --- Write flows ---
 
 // Create a hive: hive row + open placement interval + event.
 export async function createHive(b: { name: string; apiary_id: string; type?: number }) {
@@ -187,33 +187,8 @@ export async function recordInspection(hiveId: string, d: any) {
   return id;
 }
 
-// --- readde history ---
-
-export async function historyForHive(hiveId: string) {
-  const db = await getDB();
-  return db.all(`SELECT * FROM event WHERE deleted = 0 AND hive_id = ? ORDER BY date DESC`, [hiveId]);
-}
-export async function historyForApiary(apiaryId: string) {
-  const db = await getDB();
-  return db.all(`SELECT * FROM event WHERE deleted = 0 AND apiary_id = ? ORDER BY date DESC`, [apiaryId]);
-}
-export async function historyForQueen(queenId: string) {
-  const db = await getDB();
-  return db.all(`SELECT * FROM event WHERE deleted = 0 AND queen_id = ? ORDER BY date DESC`, [queenId]);
-}
-
 // --- Statistics straight from the fact table (type = HARVEST) ---
 
-export async function honeyByQueen() {
-  const db = await getDB();
-  return db.all(`SELECT queen_id AS key, SUM(amount_kg) AS kg
-                 FROM event WHERE type = 7 AND deleted = 0 GROUP BY queen_id ORDER BY kg DESC`);
-}
-export async function honeyByApiary() {
-  const db = await getDB();
-  return db.all(`SELECT apiary_id AS key, SUM(amount_kg) AS kg
-                 FROM event WHERE type = 7 AND deleted = 0 GROUP BY apiary_id ORDER BY kg DESC`);
-}
 export async function honeyByYear() {
   const db = await getDB();
   return db.all(`SELECT substr(date,1,4) AS year, SUM(amount_kg) AS kg

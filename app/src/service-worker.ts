@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
-// SvelteKit service worker. Precaches the app shell and serves
-// Serves navigations offline from cache. Data sync runs separately via the
-// sync engine + local SQLite - NOT through this cache.
+// SvelteKit service worker. Precaches the app shell and serves navigations
+// offline from cache. Data sync runs separately via the sync engine + local
+// SQLite, not through this cache.
 
 import { build, files, version } from '$service-worker';
 

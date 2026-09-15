@@ -5,6 +5,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
+  import { _ } from 'svelte-i18n';
   import { hives } from '$lib/local/repo';
   import { syncOnce } from '$lib/local/sync';
 
@@ -32,16 +33,15 @@
 <div class="wrap">
   {#if state === 'resolving'}
     <div class="spin">⬡</div>
-    <p>Beute wird geöffnet …</p>
+    <p>{$_('qr.opening')}</p>
   {:else if state === 'offline'}
-    <h2>Offline</h2>
-    <p>Diese Beute ist auf dem Gerät noch nicht vorhanden. Sobald wieder eine
-       Verbindung besteht, wird sie synchronisiert.</p>
-    <a class="btn" href="/">Zur Übersicht</a>
+    <h2>{$_('qr.offline_title')}</h2>
+    <p>{$_('qr.offline_text')}</p>
+    <a class="btn" href="/">{$_('qr.to_overview')}</a>
   {:else}
-    <h2>Nicht gefunden</h2>
-    <p>Diese Beute gibt es nicht oder sie wurde nicht mit dir geteilt.</p>
-    <a class="btn" href="/">Zur Übersicht</a>
+    <h2>{$_('qr.missing_title')}</h2>
+    <p>{$_('qr.missing_text')}</p>
+    <a class="btn" href="/">{$_('qr.to_overview')}</a>
   {/if}
 </div>
 

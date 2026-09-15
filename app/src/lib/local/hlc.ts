@@ -1,5 +1,5 @@
-// Hybrid Logical Clock, identisches Format wie im Go-Server:
-//   "<ms:15>:<counter:5>:<nodeId>"  -> String-Sort == Zeit-Sort.
+// Hybrid Logical Clock, same format as the Go server:
+//   "<ms:15>:<counter:5>:<nodeId>"  -> string order == time order.
 // nodeId is a stable, per-device randomly generated ID.
 
 const KEY_NODE = 'obh.nodeId';

@@ -4,13 +4,6 @@
     "tagline": "Cuaderno de apicultura"
   },
   "nav": {
-    "features": "Funciones",
-    "why": "Por qué",
-    "pricing": "Precios",
-    "selfhost": "Autoalojamiento",
-    "docs": "Documentación",
-    "github": "GitHub",
-    "login": "Iniciar sesión",
     "dashboard": "Resumen",
     "apiaries": "Colmenares",
     "hives": "Colmenas",
@@ -19,7 +12,13 @@
     "settings": "Ajustes"
   },
   "qr": {
-    "print": "Imprimir"
+    "print": "Imprimir",
+    "opening": "Abriendo la colmena…",
+    "offline_title": "Sin conexión",
+    "offline_text": "Esta colmena aún no está en este dispositivo. Se sincronizará en cuanto vuelva la conexión.",
+    "missing_title": "No encontrada",
+    "missing_text": "Esta colmena no existe o no se ha compartido contigo.",
+    "to_overview": "Volver al resumen"
   },
   "scan": {
     "aim": "Apunta al código QR de la colmena",
@@ -32,14 +31,7 @@
     "about": "Acerca de",
     "imprint": "Aviso legal",
     "privacy": "Privacidad",
-    "rights": "Todos los derechos reservados.",
-    "tagline": "Cuaderno de apicultura que funciona sin conexión primero.",
     "legal": "Acerca de y aviso legal"
-  },
-  "pages": {
-    "about_title": "Acerca de Openbeehive",
-    "imprint_title": "Aviso legal",
-    "privacy_title": "Política de privacidad"
   },
   "settings": {
     "title": "Ajustes",
@@ -79,7 +71,6 @@
     "title": "Espacios",
     "help": "Cambia entre tus colecciones de colmenares o crea uno nuevo (p. ej. un club).",
     "active": "Activo",
-    "switch": "Cambiar",
     "create": "Crear espacio",
     "create_ph": "p. ej. Club apícola",
     "invite": "Invitar a un apicultor",
@@ -115,41 +106,6 @@
     "mode_json": "Copia de Openbeehive (JSON)",
     "mode_beexml": "BeeXML",
     "mode_csv": "CSV de otra app"
-  },
-  "landing": {
-    "badge": "Gratuito, de código abierto, sin trampa",
-    "hero_title": "Todo tu año apícola en un solo lugar.",
-    "hero_sub": "Colmenares, colmenas, reinas, inspecciones y tareas — anotados con calma y claridad. Para cada apicultor, desde tu primera colonia hasta la centésima.",
-    "cta_start": "Abrir la app",
-    "cta_docs": "Lee la documentación",
-    "cta_selfhost": "Autoaloja la app",
-    "showcase_title": "Hecho para el colmenar",
-    "showcase_text": "Pensado para móvil y para funcionar sin conexión: anota una inspección justo en la colmena sin cobertura, y se sincroniza en cuanto vuelves a estar en línea. Áreas táctiles grandes, entrada rápida, nada que te estorbe.",
-    "showcase_point_offline": "Funciona totalmente sin conexión",
-    "showcase_point_sync": "Se sincroniza entre tus dispositivos",
-    "showcase_point_qr": "Códigos QR por colmena",
-    "why_title": "Por qué hice esto",
-    "why_lead": "No es un negocio. Solo algo útil, regalado.",
-    "why_p1": "Tengo abejas, y quería un lugar tranquilo y honesto donde llevar mis registros — uno que funcione justo en la colmena, en mi bolsillo, con o sin cobertura. No lo encontré, así que lo construí.",
-    "why_p2": "Aquí no hay nada que vender ni nadie a quien hacerle ventas adicionales. Openbeehive es gratuito y de código abierto, y tus registros siguen siendo tuyos — guárdalos en la versión alojada o ejecuta todo en tu propia máquina. Si te ayuda a cuidar mejor de tus abejas, ese es todo el sentido.",
-    "opensource_title": "Abierto, y aquí para quedarse",
-    "opensource_text": "Cada línea vive en GitHub bajo la licencia AGPL-3.0. Léela, mejórala o ejecuta tu propia copia — porque algo útil no debería depender de que yo siga estando.",
-    "opensource_cta": "Ver en GitHub",
-    "selfhost_title": "Ejecútalo tú mismo",
-    "selfhost_text": "¿Prefieres mantenerlo todo en tu propia máquina? Ejecuta Openbeehive tú mismo — un único binario pequeño, o Postgres y almacenamiento de objetos si lo prefieres. Sin cuenta, nada que salga de tu control.",
-    "cta_final_title": "Pasa, estás en tu casa",
-    "cta_final_text": "Se abre directamente en tu navegador — sin trámites de cuenta, nada que comprar. Añádelo a tu pantalla de inicio cuando quieras.",
-    "disclaimer": "Openbeehive es un software en sus inicios (v0.1.0) — ya es útil, pero espera algunas imperfecciones y guarda tus propias copias de seguridad. La versión alojada es gratuita y sin anuncios.",
-    "feature_records_title": "Cuaderno de colmena completo",
-    "feature_records_text": "Cada inspección con reina, cría, reservas, varroa y fotos — de forma cronológica por colonia.",
-    "feature_breeding_title": "Reinas y cría",
-    "feature_breeding_text": "Color de marcado por año, origen, valores de cría y estaciones de fecundación.",
-    "feature_inventory_title": "Registro de tratamientos y cosecha",
-    "feature_inventory_text": "Tratamientos con lote y periodo de retirada, lotes de miel con fecha de consumo preferente — listos para auditoría.",
-    "feature_team_title": "Comparte con otros",
-    "feature_team_text": "Invita a otros apicultores, comparte colmenares y asigna roles sencillos — práctico para clubes y socios.",
-    "feature_selfhost_title": "Tus datos, tu elección",
-    "feature_selfhost_text": "Usa la versión alojada o autoaloja un único binario — Postgres + MinIO o simplemente SQLite + archivos."
   },
   "dashboard": {
     "welcome": "Bienvenido de nuevo",
@@ -188,9 +144,7 @@
   "hives": {
     "title": "Colmenas",
     "empty": "Aún no hay colmenas. Añade una a un colmenar.",
-    "new": "Nueva colmena",
     "name": "Nombre",
-    "apiary": "Colmenar",
     "need_apiary": "Crea primero un colmenar.",
     "name_ph": "p. ej. Colmena 7",
     "edit": "Editar colmena",
@@ -208,26 +162,20 @@
   },
   "queens": {
     "title": "Reina",
-    "current": "Reina actual",
     "none": "Ninguna reina registrada.",
     "set": "Definir reina",
     "replace": "Reemplazar reina",
-    "edit": "Editar reina",
     "year": "Año",
     "number": "Número",
     "number_ph": "p. ej. 12",
-    "origin": "Origen",
     "origin_ph": "p. ej. cría propia, Buckfast…",
     "marking": "Marcado",
     "comment_ph": "Comentario — línea de cría, comportamiento, notas…",
-    "history": "Historial de reinas",
-    "introduced": "Introducida",
-    "replaced": "Reemplazada"
+    "history": "Historial de reinas"
   },
   "tasks": {
     "title": "Tareas",
     "empty": "No hay tareas. Disfruta de la calma.",
-    "new": "Nueva tarea",
     "title_ph": "¿Qué hay que hacer?",
     "due": "Vencimiento",
     "add": "Añadir",
@@ -353,9 +301,7 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "delete": "Eliminar",
-    "edit": "Editar",
     "kg": "kg",
-    "back": "Atrás",
     "confirm_delete": "¿Eliminar esto? Esta acción no se puede deshacer.",
     "saving": "Guardando…",
     "save_failed": "No se pudo guardar: {msg}",

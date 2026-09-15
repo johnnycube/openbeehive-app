@@ -2,7 +2,7 @@
 // SQLite-WASM store (db.ts) and the node-side test database.
 import type { LocalDB } from './db';
 
-// Locals Spiegel-Schema. field_hlc = field-clock (Per-field-LWW),
+// Local mirror schema. field_hlc = field clock (per-field LWW),
 // photo_keys holds OR-Set JSON. outbox = changes not yet pushed.
 export async function migrateLocal(db: LocalDB) {
   await db.exec(`

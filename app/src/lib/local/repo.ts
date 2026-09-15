@@ -47,7 +47,7 @@ export async function remove(entity: string, id: string, scopeId: string) {
   await enqueue(entity, id, scopeId, 2, { deleted: 1 }, stamp);
 }
 
-// --- OR-Set-Operationen (list fields, z.B. inspection.photo_keys) ---
+// --- OR-Set operations (list fields, e.g. inspection.photo_keys) ---
 
 export async function setAdd(entity: string, id: string, scopeId: string, field: string, elem: string) {
   const db = await getDB();
@@ -79,7 +79,7 @@ export const apiaries = {
     const db = await getDB();
     return db.all(`SELECT * FROM apiary WHERE deleted = 0 ORDER BY name`);
   },
-  // create = vollstaendiges Delta; edit = nur geaenderte fielder via patch().
+  // create = full delta; edit = only changed fields via patch().
   async create(s: { organization_id: string; name: string; address?: string; lat?: number; lng?: number; note?: string }) {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
@@ -105,7 +105,7 @@ export const inspections = {
   async listByHive(hiveId: string) {
     const db = await getDB();
     const rows = await db.all<any>(`SELECT * FROM inspection WHERE deleted = 0 AND hive_id = ? ORDER BY date DESC`, [hiveId]);
-    // OR-Set-column zu visibler Liste resolve.
+    // Resolve the OR-Set column to the list of visible photos.
     return rows.map((r) => ({ ...r, photos: orValues(parseORSet(r.photo_keys)) }));
   },
   async add(d: any, scopeApiaryId: string) {
