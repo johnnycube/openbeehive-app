@@ -5,6 +5,21 @@ All notable changes to the Openbeehive application are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-09-29
+
+Dependency maintenance. No functional changes and no migration.
+
+### Security
+
+- `devalue` 5.9.4 clears GHSA-9rgm-9g3h-6x36 (denial of service via malformed
+  input).
+- `cookie` 0.7.x and the `esbuild` that `svelte-i18n` pulls for its CLI
+  (0.25.x) are lifted through npm overrides; `postcss`, `vitest` and
+  `@sveltejs/kit` are updated within their ranges.
+
+The app is prerendered and served as a static bundle, so none of these
+packages run on the server.
+
 ## [0.3.0] - 2026-09-15
 
 The integration API release: every entity is reachable through a served
@@ -178,6 +193,7 @@ First public release. 🐝
   Docker image for the cloud profile.
 - **Multi-language UI:** English, German, French, Spanish, Italian.
 
+[0.3.1]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.3.1
 [0.3.0]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.3.0
 [0.2.3]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.2.3
 [0.2.2]: https://github.com/johnnycube/openbeehive-app/releases/tag/v0.2.2
