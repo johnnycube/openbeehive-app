@@ -5,6 +5,14 @@ All notable changes to the Openbeehive application are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- Go 1.27.4 fixes GO-2026-6859, an HTTP/1 server crash caused by a header race
+  in `net/http`'s `MaxBytesReader`; the server binary and the image are built
+  with it.
+
 ## [0.4.0] - 2026-10-19
 
 The repository, the image and the Go module live under the `openbeehive-org`
@@ -247,6 +255,7 @@ First public release. 🐝
   Docker image for the cloud profile.
 - **Multi-language UI:** English, German, French, Spanish, Italian.
 
+[Unreleased]: https://github.com/openbeehive-org/openbeehive-app/compare/v0.4.0...HEAD
 [0.3.1]: https://github.com/openbeehive-org/openbeehive-app/releases/tag/v0.3.1
 [0.3.0]: https://github.com/openbeehive-org/openbeehive-app/releases/tag/v0.3.0
 [0.2.3]: https://github.com/openbeehive-org/openbeehive-app/releases/tag/v0.2.3
